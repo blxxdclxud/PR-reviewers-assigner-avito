@@ -1,0 +1,32 @@
+services:
+  postgres-test:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: test_user
+      POSTGRES_PASSWORD: test_pass
+      POSTGRES_DB: test_db
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD", "pg_isready", "-U", "test_user", "-d", "test_db" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  migrate-test:
+    image: migrate/migrate
+    depends_on:
+      postgres-test:
+        condition: service_healthy
+    volumes:
+      - ./migrations:/migrations
+    command:
+      - "-path=/migrations"
+      - "-database=postgres://test_user:test_pass@postgres-test:5432/test_db?sslmode=disable"
+      - "up"
+
+
+volumes:
+  postgres_data:

@@ -1,6 +1,6 @@
 CREATE TABLE teams (
-                       id SERIAL PRIMARY KEY,
-                       name VARCHAR(255) UNIQUE NOT NULL
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(255) UNIQUE NOT NULL
 );
 
 CREATE TABLE users (
@@ -14,7 +14,7 @@ CREATE TABLE pull_requests (
     id VARCHAR(255) PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
     author_id VARCHAR(255) REFERENCES users(id),
-    status VARCHAR(10) CHECK (status IN ('OPEN', 'MERGED')) DEFAULT 'OPEN',
+    status VARCHAR(10) DEFAULT 'OPEN',
     created_at TIMESTAMP DEFAULT NOW(),
     merged_at TIMESTAMP DEFAULT NULL
 );
