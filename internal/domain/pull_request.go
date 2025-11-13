@@ -2,18 +2,25 @@ package domain
 
 import "time"
 
-type PullRequest struct {
-	ID                string   `json:"pull_request_id"`
-	Name              string   `json:"pull_request_name"`
-	AuthorID          string   `json:"author_id"`
-	Status            PRStatus `json:"status"`
-	Reviewers         []User   `json:"assigned_reviewers"`
-	NeedMoreReviewers bool
-	CreatedAt         time.Time `json:"createdAt"`
-	MergedAt          time.Time `json:"mergedAt"`
-}
-
+// PRStatus represents the state of a pull request
 type PRStatus string
 
-const StatusOpen = "OPEN"
-const StatusMerged = "MERGED"
+const (
+	StatusOpen   = PRStatus("OPEN")
+	StatusMerged = PRStatus("MERGED")
+)
+
+// PullRequest represents a code review request.
+// A PR can have up to MaxReviewersAmount assigned reviewers.
+type PullRequest struct {
+	ID           string
+	Name         string
+	AuthorID     string
+	Status       PRStatus
+	ReviewersIDs []string
+	CreatedAt    time.Time
+	MergedAt     *time.Time // nil if PR is not merged yet
+}
+
+// MaxReviewersAmount defines the maximum number of reviewers that can be assigned to a PR.
+const MaxReviewersAmount = 2
