@@ -19,22 +19,34 @@ func NewUserRepository(db *sql.DB) *UserRepository {
 }
 
 // Create inserts a new user into the database.
-func (u *UserRepository) Create(ctx context.Context, user *domain.User) error {
+func (u *UserRepository) Create(ctx context.Context, tx *sql.Tx, user *domain.User) error {
 	query := `
 			INSERT INTO users (id, username, is_active, team_id)
 			VALUES ($1, $2, $3, $4)`
-	_, err := u.db.ExecContext(ctx, query, user.ID, user.Name, user.IsActive, user.TeamID)
+	_, err := tx.ExecContext(ctx, query, user.ID, user.Name, user.IsActive, user.TeamID)
 
 	return err
 }
 
 // Update modifies an existing user's information.
-func (u *UserRepository) Update(ctx context.Context, user *domain.User) error {
+func (u *UserRepository) Update(ctx context.Context, tx *sql.Tx, user *domain.User) error {
 	query := `
 			UPDATE users
 			SET username = $1, is_active = $2, team_id = $3
 			WHERE id = $4`
-	_, err := u.db.ExecContext(ctx, query, user.Name, user.IsActive, user.TeamID, user.ID)
+	res, err := tx.ExecContext(ctx, query, user.Name, user.IsActive, user.TeamID, user.ID)
+	if err != nil {
+		return err
+	}
+
+	// If no such user - return ErrNotFound
+	if rows, err := res.RowsAffected(); err != nil {
+		return err
+	} else {
+		if rows == 0 {
+			return domain.ErrNotFound
+		}
+	}
 
 	return err
 }

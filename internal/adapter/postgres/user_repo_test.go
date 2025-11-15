@@ -18,17 +18,23 @@ func TestUserRepository_Create(t *testing.T) {
 	repo := &UserRepository{db: db}
 	user := &domain.User{ID: "user-1", Name: "Bob", IsActive: true, TeamID: int64(1)}
 
+	mock.ExpectBegin()
+	tx, _ := db.Begin()
+
 	// Success
 	mock.ExpectExec("INSERT INTO users").WithArgs(user.ID, user.Name, user.IsActive, user.TeamID).
 		WillReturnResult(sqlmock.NewResult(1, 1))
-	err := repo.Create(context.Background(), user)
+	err := repo.Create(context.Background(), tx, user)
 	require.NoError(t, err)
 	assert.NoError(t, mock.ExpectationsWereMet())
 
 	// insert error
 	mock.ExpectExec("INSERT INTO users").WithArgs(user.ID, user.Name, user.IsActive, user.TeamID).
 		WillReturnError(errors.New("insert error"))
-	err = repo.Create(context.Background(), user)
+	err = repo.Create(context.Background(), tx, user)
+
+	mock.ExpectCommit()
+	require.NoError(t, tx.Commit())
 	assert.Error(t, err)
 }
 
@@ -38,17 +44,23 @@ func TestUserRepository_Update(t *testing.T) {
 	repo := &UserRepository{db: db}
 	user := &domain.User{ID: "user-1", Name: "Bob", IsActive: false, TeamID: int64(1)}
 
+	mock.ExpectBegin()
+	tx, _ := db.Begin()
+
 	// Success
 	mock.ExpectExec("UPDATE users").WithArgs(user.Name, user.IsActive, user.TeamID, user.ID).
 		WillReturnResult(sqlmock.NewResult(1, 1))
-	err := repo.Update(context.Background(), user)
+	err := repo.Update(context.Background(), tx, user)
 	require.NoError(t, err)
 	assert.NoError(t, mock.ExpectationsWereMet())
 
 	// Update error
 	mock.ExpectExec("UPDATE users").WithArgs(user.Name, user.IsActive, user.TeamID, user.ID).
 		WillReturnError(errors.New("update error"))
-	err = repo.Update(context.Background(), user)
+	err = repo.Update(context.Background(), tx, user)
+
+	mock.ExpectCommit()
+	require.NoError(t, tx.Commit())
 	assert.Error(t, err)
 }
 
@@ -61,7 +73,8 @@ func TestUserRepository_GetByID(t *testing.T) {
 	teamID := int64(1)
 
 	// user found
-	mock.ExpectQuery("SELECT id, username, is_active, team_id FROM users").WithArgs(userID).
+	mock.ExpectQuery("SELECT id, username, is_active, team_id FROM user" +
+		"").WithArgs(userID).
 		WillReturnRows(sqlmock.NewRows([]string{"id", "username", "is_active", "team_id"}).
 			AddRow(userID, "Bob", true, teamID))
 	user, err := repo.GetByID(context.Background(), userID)

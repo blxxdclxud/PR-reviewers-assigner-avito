@@ -18,15 +18,24 @@ func NewPullRequestRepository(db *sql.DB) *PullRequestRepository {
 	return &PullRequestRepository{db: db}
 }
 
-// Create inserts a new pull request into the database.
-func (p *PullRequestRepository) Create(ctx context.Context, pr *domain.PullRequest) error {
+// Create inserts a new pull request into the database and sets createdAt time value to PR object.
+// Returns domain ErrPRExists if PR with given ID is present in DB
+func (p *PullRequestRepository) Create(ctx context.Context, tx *sql.Tx, pr *domain.PullRequest) error {
 	query := `
 			INSERT INTO pull_requests (id, name, author_id, status)
 			VALUES ($1, $2, $3, $4)
 			RETURNING created_at`
-	err := p.db.QueryRowContext(ctx, query, pr.ID, pr.Name, pr.AuthorID, pr.Status).Scan(&pr.CreatedAt)
+	err := tx.QueryRowContext(ctx, query, pr.ID, pr.Name, pr.AuthorID, pr.Status).Scan(&pr.CreatedAt)
 
-	return err
+	// if PR already exists - return domain.ErrPRExists
+	if err != nil {
+		if isUniqueViolationError(err) {
+			return domain.ErrPRExists
+		}
+		return err
+	}
+
+	return nil
 }
 
 // Update modifies an existing pull request within a transaction.

@@ -19,7 +19,8 @@ const (
 
 // NewDB creates and sets up database connection pool
 func NewDB(cfg config.DBConfig) (*sql.DB, error) {
-	dsn := fmt.Sprintf("")
+	dsn := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
+		cfg.Host, cfg.Port, cfg.User, cfg.Password, cfg.DbName)
 
 	// Create DB connection pool
 	db, err := sql.Open("postgres", dsn)

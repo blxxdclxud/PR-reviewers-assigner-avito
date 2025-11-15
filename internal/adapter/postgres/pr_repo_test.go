@@ -21,12 +21,15 @@ func TestPullRequestRepository_Create(t *testing.T) {
 	pr := &domain.PullRequest{ID: "test-pr-id", Name: "My-test-PR_wow", AuthorID: "ramadan", Status: "OPEN"}
 	now := time.Now()
 
+	mock.ExpectBegin()
+	tx, _ := db.Begin()
+
 	// Correct insert
 	mock.ExpectQuery(`INSERT INTO pull_requests`).
 		WithArgs(pr.ID, pr.Name, pr.AuthorID, pr.Status).
 		WillReturnRows(sqlmock.NewRows([]string{"created_at"}).AddRow(now))
 
-	err := repo.Create(context.Background(), pr)
+	err := repo.Create(context.Background(), tx, pr)
 	require.NoError(t, err)
 	assert.WithinDuration(t, now, pr.CreatedAt, time.Second)
 	assert.NoError(t, mock.ExpectationsWereMet())
@@ -36,7 +39,10 @@ func TestPullRequestRepository_Create(t *testing.T) {
 		WithArgs(pr.ID, pr.Name, pr.AuthorID, pr.Status).
 		WillReturnError(errors.New("db error"))
 
-	err = repo.Create(context.Background(), pr)
+	err = repo.Create(context.Background(), tx, pr)
+
+	mock.ExpectCommit()
+	require.NoError(t, tx.Commit())
 	assert.Error(t, err)
 }
 
@@ -122,7 +128,7 @@ func TestPullRequestRepository_GetByID(t *testing.T) {
 		WithArgs(prID).
 		WillReturnError(errors.New("error reviewers"))
 
-	pr, err = repo.GetByID(context.Background(), prID)
+	_, err = repo.GetByID(context.Background(), prID)
 	assert.Error(t, err)
 }
 
@@ -155,7 +161,7 @@ func TestPullRequestRepository_getReviewerIDs(t *testing.T) {
 		WithArgs(prID).
 		WillReturnRows(sqlmock.NewRows([]string{"user_id"}).AddRow(nil))
 
-	ids, err = repo.getReviewerIDs(context.Background(), prID)
+	_, err = repo.getReviewerIDs(context.Background(), prID)
 	assert.Error(t, err)
 }
 
@@ -194,7 +200,7 @@ func TestPRRepo_GetByIDForUpdate(t *testing.T) {
 	mock.ExpectQuery(`SELECT user_id FROM pr_reviewers WHERE pr_id =`).
 		WithArgs(prID).
 		WillReturnError(errors.New("fail getReviewerIDsTx"))
-	pr, err = repo.GetByIDForUpdate(context.Background(), tx, prID)
+	_, err = repo.GetByIDForUpdate(context.Background(), tx, prID)
 	assert.Error(t, err)
 }
 
@@ -230,7 +236,7 @@ func TestPullRequestRepository_getReviewerIDsTx(t *testing.T) {
 		WithArgs(prID).
 		WillReturnRows(sqlmock.NewRows([]string{"user_id"}).AddRow(nil))
 
-	ids, err = repo.getReviewerIDsTx(context.Background(), tx, prID)
+	_, err = repo.getReviewerIDsTx(context.Background(), tx, prID)
 	assert.Error(t, err)
 }
 
@@ -307,6 +313,6 @@ func TestPRRepo_GetPRsByReviewer(t *testing.T) {
 	// Query error
 	mock.ExpectQuery(`SELECT id, name, author_id, status, created_at, merged_at FROM pull_requests`).WithArgs(userID).
 		WillReturnError(errors.New("fail"))
-	prs, err = repo.GetPRsByReviewer(context.Background(), userID)
+	_, err = repo.GetPRsByReviewer(context.Background(), userID)
 	assert.Error(t, err)
 }

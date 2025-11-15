@@ -20,10 +20,10 @@ func NewTeamRepository(db *sql.DB) *TeamRepository {
 
 // Create inserts a new team into the database.
 // Returns ErrTeamExists if a team with the same name already exists.
-func (t *TeamRepository) Create(ctx context.Context, team *domain.Team) error {
+func (t *TeamRepository) Create(ctx context.Context, tx *sql.Tx, team *domain.Team) error {
 	query := "INSERT INTO teams (name) VALUES ($1) RETURNING id"
 
-	err := t.db.QueryRowContext(ctx, query, team.Name).Scan(&team.ID)
+	err := tx.QueryRowContext(ctx, query, team.Name).Scan(&team.ID)
 	if err != nil {
 		if isUniqueViolationError(err) {
 			return domain.ErrTeamExists

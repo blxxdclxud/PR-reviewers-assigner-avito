@@ -71,7 +71,9 @@ func (s *IntegrationTestSuite) cleanupTables() {
 func (s *IntegrationTestSuite) TestTeamCreate_Success() {
 	team := &domain.Team{Name: "backend-team"}
 
-	err := s.teamRepo.Create(context.Background(), team)
+	tx, _ := s.db.Begin()
+	err := s.teamRepo.Create(context.Background(), tx, team)
+	require.NoError(s.T(), tx.Commit())
 
 	require.NoError(s.T(), err)
 	assert.NotZero(s.T(), team.ID)
@@ -81,25 +83,30 @@ func (s *IntegrationTestSuite) TestTeamCreate_DuplicateName() {
 	team1 := &domain.Team{Name: "backend-team"}
 	team2 := &domain.Team{Name: "backend-team"}
 
-	err := s.teamRepo.Create(context.Background(), team1)
+	tx, _ := s.db.Begin()
+
+	err := s.teamRepo.Create(context.Background(), tx, team1)
 	require.NoError(s.T(), err)
 
 	// Try to create not unique team
-	err = s.teamRepo.Create(context.Background(), team2)
+	err = s.teamRepo.Create(context.Background(), tx, team2)
+	require.NoError(s.T(), tx.Rollback())
 	assert.ErrorIs(s.T(), err, domain.ErrTeamExists)
 }
 
 func (s *IntegrationTestSuite) TestTeamGetByName_Found() {
 	// Create team and users
 	team := &domain.Team{Name: "frontend-team"}
-	err := s.teamRepo.Create(context.Background(), team)
+	tx, _ := s.db.Begin()
+	err := s.teamRepo.Create(context.Background(), tx, team)
 	require.NoError(s.T(), err)
 
 	user1 := &domain.User{ID: "user-1", Name: "A", IsActive: true, TeamID: team.ID}
 	user2 := &domain.User{ID: "user-2", Name: "B", IsActive: false, TeamID: team.ID}
 
-	s.userRepo.Create(context.Background(), user1)
-	s.userRepo.Create(context.Background(), user2)
+	s.userRepo.Create(context.Background(), tx, user1)
+	s.userRepo.Create(context.Background(), tx, user2)
+	require.NoError(s.T(), tx.Commit())
 
 	// Get team with members
 	result, err := s.teamRepo.GetByName(context.Background(), "frontend-team")
@@ -117,7 +124,9 @@ func (s *IntegrationTestSuite) TestTeamGetByName_NotFound() {
 
 func (s *IntegrationTestSuite) TestTeamGetByName_EmptyMembers() {
 	team := &domain.Team{Name: "empty-team"}
-	s.teamRepo.Create(context.Background(), team)
+	tx, _ := s.db.Begin()
+	s.teamRepo.Create(context.Background(), tx, team)
+	require.NoError(s.T(), tx.Commit())
 
 	result, err := s.teamRepo.GetByName(context.Background(), "empty-team")
 
@@ -128,7 +137,8 @@ func (s *IntegrationTestSuite) TestTeamGetByName_EmptyMembers() {
 // ==== UserRepository tests ====
 func (s *IntegrationTestSuite) TestUserCreate_Success() {
 	team := &domain.Team{Name: "team-1"}
-	s.teamRepo.Create(context.Background(), team)
+	tx, _ := s.db.Begin()
+	s.teamRepo.Create(context.Background(), tx, team)
 
 	user := &domain.User{
 		ID:       "user-1",
@@ -137,7 +147,8 @@ func (s *IntegrationTestSuite) TestUserCreate_Success() {
 		TeamID:   team.ID,
 	}
 
-	err := s.userRepo.Create(context.Background(), user)
+	err := s.userRepo.Create(context.Background(), tx, user)
+	require.NoError(s.T(), tx.Commit())
 	assert.NoError(s.T(), err)
 }
 
@@ -149,16 +160,21 @@ func (s *IntegrationTestSuite) TestUserCreate_InvalidTeamID() {
 		TeamID:   99999, // team not exist
 	}
 
-	err := s.userRepo.Create(context.Background(), user)
+	tx, _ := s.db.Begin()
+
+	err := s.userRepo.Create(context.Background(), tx, user)
+	require.NoError(s.T(), tx.Rollback())
 	assert.Error(s.T(), err) // FK constraint violation
 }
 
 func (s *IntegrationTestSuite) TestUserGetByID_Found() {
 	team := &domain.Team{Name: "team-2"}
-	s.teamRepo.Create(context.Background(), team)
+	tx, _ := s.db.Begin()
+	s.teamRepo.Create(context.Background(), tx, team)
 
 	user := &domain.User{ID: "user-10", Name: "Diana", IsActive: true, TeamID: team.ID}
-	s.userRepo.Create(context.Background(), user)
+	s.userRepo.Create(context.Background(), tx, user)
+	require.NoError(s.T(), tx.Commit())
 
 	result, err := s.userRepo.GetByID(context.Background(), "user-10")
 
@@ -174,16 +190,18 @@ func (s *IntegrationTestSuite) TestUserGetByID_NotFound() {
 
 func (s *IntegrationTestSuite) TestUserUpdate_Success() {
 	team := &domain.Team{Name: "team-3"}
-	s.teamRepo.Create(context.Background(), team)
+	tx, _ := s.db.Begin()
+	s.teamRepo.Create(context.Background(), tx, team)
 
 	user := &domain.User{ID: "user-20", Name: "Eve", IsActive: true, TeamID: team.ID}
-	s.userRepo.Create(context.Background(), user)
+	s.userRepo.Create(context.Background(), tx, user)
 
 	// update
 	user.Name = "Eve Updated"
 	user.IsActive = false
 
-	err := s.userRepo.Update(context.Background(), user)
+	err := s.userRepo.Update(context.Background(), tx, user)
+	require.NoError(s.T(), tx.Commit())
 	require.NoError(s.T(), err)
 
 	// Check updates
@@ -194,13 +212,16 @@ func (s *IntegrationTestSuite) TestUserUpdate_Success() {
 
 func (s *IntegrationTestSuite) TestUserGetActiveTeamMembers_FilterCorrectly() {
 	team := &domain.Team{Name: "team-4"}
-	s.teamRepo.Create(context.Background(), team)
+	tx, _ := s.db.Begin()
+	s.teamRepo.Create(context.Background(), tx, team)
 
 	// Create users
-	s.userRepo.Create(context.Background(), &domain.User{ID: "u1", Name: "A", IsActive: true, TeamID: team.ID})
-	s.userRepo.Create(context.Background(), &domain.User{ID: "u2", Name: "B", IsActive: false, TeamID: team.ID})
-	s.userRepo.Create(context.Background(), &domain.User{ID: "u3", Name: "C", IsActive: true, TeamID: team.ID})
-	s.userRepo.Create(context.Background(), &domain.User{ID: "u4", Name: "D", IsActive: true, TeamID: team.ID})
+	s.userRepo.Create(context.Background(), tx, &domain.User{ID: "u1", Name: "A", IsActive: true, TeamID: team.ID})
+	s.userRepo.Create(context.Background(), tx, &domain.User{ID: "u2", Name: "B", IsActive: false, TeamID: team.ID})
+	s.userRepo.Create(context.Background(), tx, &domain.User{ID: "u3", Name: "C", IsActive: true, TeamID: team.ID})
+	s.userRepo.Create(context.Background(), tx, &domain.User{ID: "u4", Name: "D", IsActive: true, TeamID: team.ID})
+
+	require.NoError(s.T(), tx.Commit())
 
 	// Get active members, excluding u1
 	teamIDStr := team.ID
@@ -217,10 +238,11 @@ func (s *IntegrationTestSuite) TestUserGetActiveTeamMembers_FilterCorrectly() {
 // ==== PullRequestRepository tests ====
 func (s *IntegrationTestSuite) TestPRCreate_Success() {
 	team := &domain.Team{Name: "team-5"}
-	s.teamRepo.Create(context.Background(), team)
+	tx, _ := s.db.Begin()
+	s.teamRepo.Create(context.Background(), tx, team)
 
 	user := &domain.User{ID: "author-1", Name: "Author", IsActive: true, TeamID: team.ID}
-	s.userRepo.Create(context.Background(), user)
+	s.userRepo.Create(context.Background(), tx, user)
 
 	pr := &domain.PullRequest{
 		ID:       "pr-1001",
@@ -229,7 +251,8 @@ func (s *IntegrationTestSuite) TestPRCreate_Success() {
 		Status:   domain.StatusOpen,
 	}
 
-	err := s.prRepo.Create(context.Background(), pr)
+	err := s.prRepo.Create(context.Background(), tx, pr)
+	require.NoError(s.T(), tx.Commit())
 
 	require.NoError(s.T(), err)
 	assert.False(s.T(), pr.CreatedAt.IsZero())
@@ -243,19 +266,25 @@ func (s *IntegrationTestSuite) TestPRCreate_InvalidAuthorID() {
 		Status:   domain.StatusOpen,
 	}
 
-	err := s.prRepo.Create(context.Background(), pr)
+	tx, err := s.db.Begin()
+	require.NoError(s.T(), err)
+
+	err = s.prRepo.Create(context.Background(), tx, pr)
+	assert.NoError(s.T(), tx.Rollback())
 	assert.Error(s.T(), err) // FK constraint
 }
 
 func (s *IntegrationTestSuite) TestPRGetByID_Found() {
 	team := &domain.Team{Name: "team-6"}
-	s.teamRepo.Create(context.Background(), team)
+	tx, _ := s.db.Begin()
+	s.teamRepo.Create(context.Background(), tx, team)
 
 	author := &domain.User{ID: "author-2", Name: "Author2", IsActive: true, TeamID: team.ID}
-	s.userRepo.Create(context.Background(), author)
+	s.userRepo.Create(context.Background(), tx, author)
 
 	pr := &domain.PullRequest{ID: "pr-2001", Name: "Fix bug", AuthorID: "author-2", Status: domain.StatusOpen}
-	s.prRepo.Create(context.Background(), pr)
+	s.prRepo.Create(context.Background(), tx, pr)
+	require.NoError(s.T(), tx.Commit())
 
 	result, err := s.prRepo.GetByID(context.Background(), "pr-2001")
 
@@ -272,23 +301,25 @@ func (s *IntegrationTestSuite) TestPRGetByID_NotFound() {
 
 func (s *IntegrationTestSuite) TestPRUpdate_StatusToMerged() {
 	team := &domain.Team{Name: "team-7"}
-	s.teamRepo.Create(context.Background(), team)
+	tx, _ := s.db.Begin()
+	s.teamRepo.Create(context.Background(), tx, team)
 
 	author := &domain.User{ID: "author-3", Name: "Author3", IsActive: true, TeamID: team.ID}
-	s.userRepo.Create(context.Background(), author)
+	s.userRepo.Create(context.Background(), tx, author)
 
 	pr := &domain.PullRequest{ID: "pr-3001", Name: "Release", AuthorID: "author-3", Status: domain.StatusOpen}
-	s.prRepo.Create(context.Background(), pr)
+	s.prRepo.Create(context.Background(), tx, pr)
+	require.NoError(s.T(), tx.Commit())
 
 	// Update status
-	tx, _ := s.db.Begin()
 	pr.Status = domain.StatusMerged
 	now := time.Now()
 	pr.MergedAt = &now
 
+	tx, _ = s.db.Begin()
 	err := s.prRepo.Update(context.Background(), tx, pr)
 	require.NoError(s.T(), err)
-	tx.Commit()
+	require.NoError(s.T(), tx.Commit())
 
 	// Check changes
 	updated, _ := s.prRepo.GetByID(context.Background(), "pr-3001")
@@ -309,21 +340,21 @@ func (s *IntegrationTestSuite) TestPRUpdate_NotFound() {
 // ==== Reviewer tests ====
 func (s *IntegrationTestSuite) TestPRAddReviewer_Success() {
 	team := &domain.Team{Name: "team-8"}
-	s.teamRepo.Create(context.Background(), team)
+	tx, _ := s.db.Begin()
+	s.teamRepo.Create(context.Background(), tx, team)
 
 	author := &domain.User{ID: "author-4", Name: "Author4", IsActive: true, TeamID: team.ID}
 	reviewer := &domain.User{ID: "reviewer-1", Name: "Reviewer1", IsActive: true, TeamID: team.ID}
-	s.userRepo.Create(context.Background(), author)
-	s.userRepo.Create(context.Background(), reviewer)
+	s.userRepo.Create(context.Background(), tx, author)
+	s.userRepo.Create(context.Background(), tx, reviewer)
 
 	pr := &domain.PullRequest{ID: "pr-4001", Name: "Feature", AuthorID: "author-4", Status: domain.StatusOpen}
-	s.prRepo.Create(context.Background(), pr)
+	s.prRepo.Create(context.Background(), tx, pr)
 
 	// Add reviewer
-	tx, _ := s.db.Begin()
 	err := s.prRepo.AddReviewer(context.Background(), tx, "pr-4001", "reviewer-1")
 	require.NoError(s.T(), err)
-	tx.Commit()
+	require.NoError(s.T(), tx.Commit())
 
 	// Check that reviewer was added
 	result, _ := s.prRepo.GetByID(context.Background(), "pr-4001")
@@ -332,25 +363,25 @@ func (s *IntegrationTestSuite) TestPRAddReviewer_Success() {
 
 func (s *IntegrationTestSuite) TestPRAddReviewer_Duplicate_Idempotent() {
 	team := &domain.Team{Name: "team-9"}
-	s.teamRepo.Create(context.Background(), team)
+	tx, _ := s.db.Begin()
+	s.teamRepo.Create(context.Background(), tx, team)
 
 	author := &domain.User{ID: "author-5", Name: "Author5", IsActive: true, TeamID: team.ID}
 	reviewer := &domain.User{ID: "reviewer-2", Name: "Reviewer2", IsActive: true, TeamID: team.ID}
-	err := s.userRepo.Create(context.Background(), author)
+	err := s.userRepo.Create(context.Background(), tx, author)
 	require.NoError(s.T(), err)
-	err = s.userRepo.Create(context.Background(), reviewer)
+	err = s.userRepo.Create(context.Background(), tx, reviewer)
 	require.NoError(s.T(), err)
 
 	pr := &domain.PullRequest{ID: "pr-5001", Name: "Feature", AuthorID: "author-5", Status: domain.StatusOpen}
-	err = s.prRepo.Create(context.Background(), pr)
+	err = s.prRepo.Create(context.Background(), tx, pr)
 	require.NoError(s.T(), err)
 
 	// Add twice
-	tx, _ := s.db.Begin()
 	err = s.prRepo.AddReviewer(context.Background(), tx, "pr-5001", "reviewer-2")
 	require.NoError(s.T(), err)
 	err = s.prRepo.AddReviewer(context.Background(), tx, "pr-5001", "reviewer-2")
-	tx.Commit()
+	require.NoError(s.T(), tx.Commit())
 
 	// Operation must not conflict (ON CONFLICT DO NOTHING)
 	assert.NoError(s.T(), err)
@@ -363,25 +394,30 @@ func (s *IntegrationTestSuite) TestPRAddReviewer_Duplicate_Idempotent() {
 
 func (s *IntegrationTestSuite) TestPRRemoveReviewer_Success() {
 	team := &domain.Team{Name: "team-10"}
-	s.teamRepo.Create(context.Background(), team)
+
+	// Create team, two users, and PR
+	tx, _ := s.db.Begin()
+	s.teamRepo.Create(context.Background(), tx, team)
 
 	author := &domain.User{ID: "author-6", Name: "Author6", IsActive: true, TeamID: team.ID}
 	reviewer := &domain.User{ID: "reviewer-3", Name: "Reviewer3", IsActive: true, TeamID: team.ID}
-	s.userRepo.Create(context.Background(), author)
-	s.userRepo.Create(context.Background(), reviewer)
+	s.userRepo.Create(context.Background(), tx, author)
+	s.userRepo.Create(context.Background(), tx, reviewer)
 
 	pr := &domain.PullRequest{ID: "pr-6001", Name: "Feature", AuthorID: "author-6", Status: domain.StatusOpen}
-	s.prRepo.Create(context.Background(), pr)
+	s.prRepo.Create(context.Background(), tx, pr)
+	require.NoError(s.T(), tx.Commit())
 
-	// Add and delete
-	tx, _ := s.db.Begin()
+	// Add reviewer
+	tx, _ = s.db.Begin()
 	s.prRepo.AddReviewer(context.Background(), tx, "pr-6001", "reviewer-3")
-	tx.Commit()
+	require.NoError(s.T(), tx.Commit())
 
+	// Delete reviewer
 	tx, _ = s.db.Begin()
 	err := s.prRepo.RemoveReviewer(context.Background(), tx, "pr-6001", "reviewer-3")
 	require.NoError(s.T(), err)
-	tx.Commit()
+	require.NoError(s.T(), tx.Commit())
 
 	// Check that reviewer was deleted
 	result, _ := s.prRepo.GetByID(context.Background(), "pr-6001")
@@ -390,42 +426,42 @@ func (s *IntegrationTestSuite) TestPRRemoveReviewer_Success() {
 
 func (s *IntegrationTestSuite) TestPRRemoveReviewer_NotAssigned() {
 	team := &domain.Team{Name: "team-11"}
-	s.teamRepo.Create(context.Background(), team)
+	tx, _ := s.db.Begin()
+	s.teamRepo.Create(context.Background(), tx, team)
 
 	author := &domain.User{ID: "author-7", Name: "Author7", IsActive: true, TeamID: team.ID}
-	s.userRepo.Create(context.Background(), author)
+	s.userRepo.Create(context.Background(), tx, author)
 
 	pr := &domain.PullRequest{ID: "pr-7001", Name: "Feature", AuthorID: "author-7", Status: domain.StatusOpen}
-	s.prRepo.Create(context.Background(), pr)
+	s.prRepo.Create(context.Background(), tx, pr)
 
 	// Try to delete reviewer that does not exist
-	tx, _ := s.db.Begin()
 	err := s.prRepo.RemoveReviewer(context.Background(), tx, "pr-7001", "nonexistent-reviewer")
-	tx.Rollback()
+	require.NoError(s.T(), tx.Rollback())
 
 	assert.ErrorIs(s.T(), err, domain.ErrNotAssigned)
 }
 
 func (s *IntegrationTestSuite) TestPRGetPRsByReviewer_MultipleFound() {
 	team := &domain.Team{Name: "team-12"}
-	s.teamRepo.Create(context.Background(), team)
+	tx, _ := s.db.Begin()
+	s.teamRepo.Create(context.Background(), tx, team)
 
 	author := &domain.User{ID: "author-8", Name: "Author8", IsActive: true, TeamID: team.ID}
 	reviewer := &domain.User{ID: "reviewer-4", Name: "Reviewer4", IsActive: true, TeamID: team.ID}
-	s.userRepo.Create(context.Background(), author)
-	s.userRepo.Create(context.Background(), reviewer)
+	s.userRepo.Create(context.Background(), tx, author)
+	s.userRepo.Create(context.Background(), tx, reviewer)
 
 	// Create several PRs
 	pr1 := &domain.PullRequest{ID: "pr-8001", Name: "F1", AuthorID: "author-8", Status: domain.StatusOpen}
 	pr2 := &domain.PullRequest{ID: "pr-8002", Name: "F2", AuthorID: "author-8", Status: domain.StatusOpen}
-	s.prRepo.Create(context.Background(), pr1)
-	s.prRepo.Create(context.Background(), pr2)
+	s.prRepo.Create(context.Background(), tx, pr1)
+	s.prRepo.Create(context.Background(), tx, pr2)
 
 	// Assign reviewers for both PRs
-	tx, _ := s.db.Begin()
 	s.prRepo.AddReviewer(context.Background(), tx, "pr-8001", "reviewer-4")
 	s.prRepo.AddReviewer(context.Background(), tx, "pr-8002", "reviewer-4")
-	tx.Commit()
+	require.NoError(s.T(), tx.Commit())
 
 	// Get PR of the reviewer
 	prs, err := s.prRepo.GetPRsByReviewer(context.Background(), "reviewer-4")

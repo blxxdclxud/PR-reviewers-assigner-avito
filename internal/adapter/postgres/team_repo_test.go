@@ -25,12 +25,15 @@ func TestTeamRepository_Create(t *testing.T) {
 		Members: nil,
 	}
 
+	mock.ExpectBegin()
+	tx, _ := db.Begin()
+
 	// Correct insert
 	mock.ExpectQuery(`INSERT INTO teams`).
 		WithArgs(team.Name).
 		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
 
-	err := repo.Create(context.Background(), team)
+	err := repo.Create(context.Background(), tx, team)
 	require.NoError(t, err)
 	assert.NoError(t, mock.ExpectationsWereMet())
 
@@ -39,7 +42,7 @@ func TestTeamRepository_Create(t *testing.T) {
 		WithArgs(team.Name).
 		WillReturnError(errors.New("db error"))
 
-	err = repo.Create(context.Background(), team)
+	err = repo.Create(context.Background(), tx, team)
 	assert.Error(t, err)
 
 	// Case with duplicated team name, should return domain.ErrTeamExists
@@ -49,7 +52,10 @@ func TestTeamRepository_Create(t *testing.T) {
 		WithArgs(team.Name).
 		WillReturnError(uniqErr)
 
-	err = repo.Create(context.Background(), team)
+	err = repo.Create(context.Background(), tx, team)
+	mock.ExpectCommit()
+	require.NoError(t, tx.Commit())
+
 	assert.ErrorIs(t, err, domain.ErrTeamExists)
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
