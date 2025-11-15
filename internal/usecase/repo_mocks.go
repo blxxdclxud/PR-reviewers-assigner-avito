@@ -25,11 +25,6 @@ func (m *TeamRepoMock) GetByName(ctx context.Context, teamName string) (*domain.
 	return args.Get(0).(*domain.Team), args.Error(1)
 }
 
-func (m *TeamRepoMock) Exists(ctx context.Context, teamID string) (bool, error) {
-	//TODO implement me
-	panic("implement me")
-}
-
 type UserRepoMock struct {
 	mock.Mock
 }
