@@ -28,11 +28,11 @@ components:
   schemas:
     ErrorResponse:
       type: object
-      required: [ error ]
+      required: [error]
       properties:
         error:
           type: object
-          required: [ code, message ]
+          required: [code, message]
           properties:
             code:
               type: string
@@ -61,7 +61,7 @@ components:
           type: boolean
     Team:
       type: object
-      required: [ team_name, members ]
+      required: [ team_name, members]
       properties:
         team_name:
           type: string
@@ -83,7 +83,7 @@ components:
           type: boolean
     PullRequest:
       type: object
-      required: [ pull_request_id, pull_request_name, author_id, status, assigned_reviewers ]
+      required: [ pull_request_id, pull_request_name, author_id, status, assigned_reviewers]
       properties:
         pull_request_id:
           type: string
@@ -93,7 +93,7 @@ components:
           type: string
         status:
           type: string
-          enum: [ OPEN, MERGED ]
+          enum: [OPEN, MERGED]
         assigned_reviewers:
           type: array
           items:
@@ -109,7 +109,7 @@ components:
           nullable: true
     PullRequestShort:
       type: object
-      required: [ pull_request_id, pull_request_name, author_id, status ]
+      required: [ pull_request_id, pull_request_name, author_id, status]
       properties:
         pull_request_id:
           type: string
@@ -119,12 +119,12 @@ components:
           type: string
         status:
           type: string
-          enum: [ OPEN, MERGED ]
+          enum: [OPEN, MERGED]
 
 paths:
   /team/add:
     post:
-      tags: [ Teams ]
+      tags: [Teams]
       summary: Создать команду с участниками (создаёт/обновляет пользователей)
       requestBody:
         required: true
@@ -173,11 +173,8 @@ paths:
 
   /team/get:
     get:
-      tags: [ Teams ]
+      tags: [Teams]
       summary: Получить команду с участниками
-      security:
-        - AdminToken: [ ]
-        - UserToken: [ ]
       parameters:
         - $ref: '#/components/parameters/TeamNameQuery'
       responses:
@@ -204,10 +201,8 @@ paths:
 
   /users/setIsActive:
     post:
-      tags: [ Users ]
+      tags: [Users]
       summary: Установить флаг активности пользователя
-      security:
-        - AdminToken: [ ]
       requestBody:
         required: true
         content:
@@ -244,18 +239,11 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/ErrorResponse' }
-        '401':
-          description: Нет/неверный админский токен
-          content:
-            application/json:
-              schema: { $ref: '#/components/schemas/ErrorResponse' }
 
   /pullRequest/create:
     post:
-      tags: [ PullRequests ]
+      tags: [PullRequests]
       summary: Создать PR и автоматически назначить до 2 ревьюверов из команды автора
-      security:
-        - AdminToken: [ ]
       requestBody:
         required: true
         content:
@@ -287,7 +275,7 @@ paths:
                   pull_request_name: Add search
                   author_id: u1
                   status: OPEN
-                  assigned_reviewers: [ u2, u3 ]
+                  assigned_reviewers: [u2, u3]
         '404':
           description: Автор/команда не найдены
           content:
@@ -303,10 +291,8 @@ paths:
 
   /pullRequest/merge:
     post:
-      tags: [ PullRequests ]
+      tags: [PullRequests]
       summary: Пометить PR как MERGED (идемпотентная операция)
-      security:
-        - AdminToken: [ ]
       requestBody:
         required: true
         content:
@@ -334,7 +320,7 @@ paths:
                   pull_request_name: Add search
                   author_id: u1
                   status: MERGED
-                  assigned_reviewers: [ u2, u3 ]
+                  assigned_reviewers: [u2, u3]
                   mergedAt: 2025-10-24T12:34:56Z
         '404':
           description: PR не найден
@@ -344,10 +330,8 @@ paths:
 
   /pullRequest/reassign:
     post:
-      tags: [ PullRequests ]
+      tags: [PullRequests]
       summary: Переназначить конкретного ревьювера на другого из его команды
-      security:
-        - AdminToken: [ ]
       requestBody:
         required: true
         content:
@@ -368,7 +352,7 @@ paths:
             application/json:
               schema:
                 type: object
-                required: [ pr, replaced_by ]
+                required: [pr, replaced_by]
                 properties:
                   pr:
                     $ref: '#/components/schemas/PullRequest'
@@ -381,7 +365,7 @@ paths:
                   pull_request_name: Add search
                   author_id: u1
                   status: OPEN
-                  assigned_reviewers: [ u3, u5 ]
+                  assigned_reviewers: [u3, u5]
                 replaced_by: u5
         '404':
           description: PR или пользователь не найден
@@ -409,11 +393,8 @@ paths:
 
   /users/getReview:
     get:
-      tags: [ Users ]
+      tags: [Users]
       summary: Получить PR'ы, где пользователь назначен ревьювером
-      security:
-        - AdminToken: [ ]
-        - UserToken: [ ]
       parameters:
         - $ref: '#/components/parameters/UserIdQuery'
       responses:
@@ -438,4 +419,3 @@ paths:
                     pull_request_name: Add search
                     author_id: u1
                     status: OPEN
-
