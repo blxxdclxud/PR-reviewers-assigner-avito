@@ -20,7 +20,7 @@ import (
 func main() {
 	// Initialize logger
 	logger, _ := zap.NewProduction()
-	defer logger.Sync()
+	defer logger.Sync() //nolint:errcheck
 
 	logger.Info("Starting PR manager service")
 
@@ -36,7 +36,7 @@ func main() {
 	if err != nil {
 		logger.Fatal("failed to connect to database", zap.Error(err))
 	}
-	defer postgres.CloseDB(db)
+	defer postgres.CloseDB(db) //nolint:errcheck
 
 	logger.Info("database connection established")
 
@@ -62,6 +62,10 @@ func main() {
 	server := &http.Server{
 		Addr:    addr,
 		Handler: httpAdapter.SetupRouter(teamUC, userUC, prUC, statsUC),
+
+		ReadHeaderTimeout: 5 * time.Second,
+		ReadTimeout:       10 * time.Second,
+		WriteTimeout:      10 * time.Second,
 	}
 
 	// Run server

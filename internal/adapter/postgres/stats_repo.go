@@ -75,7 +75,7 @@ func (r *StatsRepository) GetReviewers(ctx context.Context) ([]domain.UserReview
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer rows.Close() //nolint:errcheck
 
 	var reviewers []domain.UserReviewStats
 	for rows.Next() {

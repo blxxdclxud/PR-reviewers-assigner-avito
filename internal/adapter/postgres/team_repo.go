@@ -104,7 +104,7 @@ func (t *TeamRepository) getTeamMembers(ctx context.Context, teamID int64) ([]do
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer rows.Close() //nolint:errcheck
 
 	var users []domain.User
 	for rows.Next() {

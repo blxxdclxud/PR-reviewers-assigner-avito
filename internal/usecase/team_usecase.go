@@ -38,7 +38,7 @@ func (u *TeamUseCase) CreateTeam(ctx context.Context, team domain.Team) (*domain
 	if err != nil {
 		return nil, err
 	}
-	defer tx.Rollback()
+	defer tx.Rollback() //nolint:errcheck
 
 	// Create team itself, created team ID is assigned to team.ID inside
 	err = u.teamRepo.Create(ctx, tx, &team)

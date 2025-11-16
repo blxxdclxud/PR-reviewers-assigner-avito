@@ -1,0 +1,27 @@
+version: "2"
+
+run:
+  timeout: 5m
+  tests: true
+  build-tags:
+    - integration
+    - e2e
+
+linters:
+  enable:
+    - errcheck
+    - govet
+    - ineffassign
+    - staticcheck
+    - unused
+    - bodyclose
+    - gosec
+    - nilerr
+
+  exclusions:
+    rules:
+      - path: (tests/|_test\.go)
+        linters:
+          - errcheck
+          - gosec
+          - bodyclose

@@ -50,7 +50,7 @@ func (u *PRUseCase) CreatePRAndSetReviewers(ctx context.Context, pr domain.PullR
 	if err != nil {
 		return nil, err
 	}
-	defer tx.Rollback()
+	defer tx.Rollback() //nolint:errcheck
 
 	// Create PR (sets createdAt time value implicitly). Can return domain.ErrPRExist
 	err = u.prRepo.Create(ctx, tx, &pr)
@@ -88,7 +88,7 @@ func (u *PRUseCase) MergePR(ctx context.Context, prID string) (*domain.PullReque
 	if err != nil {
 		return nil, err
 	}
-	defer tx.Rollback()
+	defer tx.Rollback() //nolint:errcheck
 
 	// Get PR object from DB
 	pr, err := u.prRepo.GetByIDForUpdate(ctx, tx, prID)
@@ -166,7 +166,7 @@ func (u *PRUseCase) ReassignReviewer(ctx context.Context, prID, oldReviewerID st
 	if err != nil {
 		return nil, "", err
 	}
-	defer tx.Rollback()
+	defer tx.Rollback() //nolint:errcheck
 
 	// Remove old reviewer
 	err = u.prRepo.RemoveReviewer(ctx, tx, prID, oldReviewerID)

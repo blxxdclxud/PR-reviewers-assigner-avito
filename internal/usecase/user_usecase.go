@@ -43,7 +43,7 @@ func (u *UserUseCase) SetUserIsActive(ctx context.Context, userID string, isActi
 	// If exists - update isActive field in the domain and call repo method
 	user.IsActive = isActive
 	tx, _ := u.db.Begin()
-	defer tx.Rollback()
+	defer tx.Rollback() //nolint:errcheck
 
 	// Update user in database
 	err = u.userRepo.Update(ctx, tx, user)
