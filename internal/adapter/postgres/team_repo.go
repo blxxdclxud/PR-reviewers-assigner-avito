@@ -62,6 +62,25 @@ func (t *TeamRepository) GetByName(ctx context.Context, teamName string) (*domai
 	return &team, nil
 }
 
+func (t *TeamRepository) GetTeamNameById(ctx context.Context, teamID int64) (string, error) {
+	query := `
+			SELECT name
+			FROM teams 
+			WHERE id = $1`
+
+	var teamName string
+	err := t.db.QueryRowContext(ctx, query, teamID).Scan(&teamName)
+
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return "", domain.ErrNotFound
+		}
+		return "", err
+	}
+
+	return teamName, nil
+}
+
 // getTeamMembers retrieves all members of a team by team ID.
 func (t *TeamRepository) getTeamMembers(ctx context.Context, teamID int64) ([]domain.User, error) {
 	query := `
@@ -92,11 +111,4 @@ func (t *TeamRepository) getTeamMembers(ctx context.Context, teamID int64) ([]do
 	}
 
 	return users, nil
-}
-
-// Exists checks if a team with the given ID exists.
-// Returns true if the team exists, false otherwise.
-func (t *TeamRepository) Exists(ctx context.Context, teamID string) (bool, error) {
-	//TODO implement me
-	panic("implement me")
 }

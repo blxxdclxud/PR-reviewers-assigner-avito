@@ -16,6 +16,7 @@ import (
 func TestSetUserIsActive_Success(t *testing.T) {
 	mockUserRepo := new(UserRepoMock)
 	mockPRRepo := new(PullRequestRepoMock)
+	mockTeamRepo := new(TeamRepoMock)
 
 	db, dbMock, err := sqlmock.New()
 	require.NoError(t, err)
@@ -41,7 +42,7 @@ func TestSetUserIsActive_Success(t *testing.T) {
 	dbMock.ExpectCommit()
 
 	// Execute
-	uc := NewUserUseCase(mockUserRepo, mockPRRepo, db)
+	uc := NewUserUseCase(mockUserRepo, mockPRRepo, mockTeamRepo, db)
 	result, err := uc.SetUserIsActive(ctx, userID, false)
 
 	// Assert
@@ -57,6 +58,7 @@ func TestSetUserIsActive_Success(t *testing.T) {
 func TestSetUserIsActive_UserNotFound(t *testing.T) {
 	mockUserRepo := new(UserRepoMock)
 	mockPRRepo := new(PullRequestRepoMock)
+	mockTeamRepo := new(TeamRepoMock)
 
 	db, _, err := sqlmock.New()
 	require.NoError(t, err)
@@ -69,7 +71,7 @@ func TestSetUserIsActive_UserNotFound(t *testing.T) {
 	mockUserRepo.On("GetByID", ctx, userID).Return(nil, domain.ErrNotFound)
 
 	// Execute
-	uc := NewUserUseCase(mockUserRepo, mockPRRepo, db)
+	uc := NewUserUseCase(mockUserRepo, mockPRRepo, mockTeamRepo, db)
 	result, err := uc.SetUserIsActive(ctx, userID, true)
 
 	// Assert
@@ -82,6 +84,7 @@ func TestSetUserIsActive_UserNotFound(t *testing.T) {
 func TestSetUserIsActive_UpdateError(t *testing.T) {
 	mockUserRepo := new(UserRepoMock)
 	mockPRRepo := new(PullRequestRepoMock)
+	mockTeamRepo := new(TeamRepoMock)
 
 	db, dbMock, err := sqlmock.New()
 	require.NoError(t, err)
@@ -100,7 +103,7 @@ func TestSetUserIsActive_UpdateError(t *testing.T) {
 	dbMock.ExpectRollback()
 
 	// Execute
-	uc := NewUserUseCase(mockUserRepo, mockPRRepo, db)
+	uc := NewUserUseCase(mockUserRepo, mockPRRepo, mockTeamRepo, db)
 	result, err := uc.SetUserIsActive(ctx, userID, false)
 
 	// Assert
@@ -116,6 +119,7 @@ func TestSetUserIsActive_UpdateError(t *testing.T) {
 func TestGetAssignedPRs_Success(t *testing.T) {
 	mockUserRepo := new(UserRepoMock)
 	mockPRRepo := new(PullRequestRepoMock)
+	mockTeamRepo := new(TeamRepoMock)
 
 	db, _, err := sqlmock.New()
 	require.NoError(t, err)
@@ -132,7 +136,7 @@ func TestGetAssignedPRs_Success(t *testing.T) {
 	mockPRRepo.On("GetPRsByReviewer", ctx, userID).Return(expectedPRs, nil)
 
 	// Execute
-	uc := NewUserUseCase(mockUserRepo, mockPRRepo, db)
+	uc := NewUserUseCase(mockUserRepo, mockPRRepo, mockTeamRepo, db)
 	result, err := uc.GetAssignedPRs(ctx, userID)
 
 	// Assert
@@ -147,6 +151,7 @@ func TestGetAssignedPRs_Success(t *testing.T) {
 func TestGetAssignedPRs_NoPRs(t *testing.T) {
 	mockUserRepo := new(UserRepoMock)
 	mockPRRepo := new(PullRequestRepoMock)
+	mockTeamRepo := new(TeamRepoMock)
 
 	db, _, err := sqlmock.New()
 	require.NoError(t, err)
@@ -159,7 +164,7 @@ func TestGetAssignedPRs_NoPRs(t *testing.T) {
 	mockPRRepo.On("GetPRsByReviewer", ctx, userID).Return([]*domain.PullRequest{}, nil)
 
 	// Execute
-	uc := NewUserUseCase(mockUserRepo, mockPRRepo, db)
+	uc := NewUserUseCase(mockUserRepo, mockPRRepo, mockTeamRepo, db)
 	result, err := uc.GetAssignedPRs(ctx, userID)
 
 	// Assert
@@ -172,6 +177,7 @@ func TestGetAssignedPRs_NoPRs(t *testing.T) {
 func TestGetAssignedPRs_RepositoryError(t *testing.T) {
 	mockUserRepo := new(UserRepoMock)
 	mockPRRepo := new(PullRequestRepoMock)
+	mockTeamRepo := new(TeamRepoMock)
 
 	db, _, err := sqlmock.New()
 	require.NoError(t, err)
@@ -185,7 +191,7 @@ func TestGetAssignedPRs_RepositoryError(t *testing.T) {
 	mockPRRepo.On("GetPRsByReviewer", ctx, userID).Return(nil, repoErr)
 
 	// Execute
-	uc := NewUserUseCase(mockUserRepo, mockPRRepo, db)
+	uc := NewUserUseCase(mockUserRepo, mockPRRepo, mockTeamRepo, db)
 	result, err := uc.GetAssignedPRs(ctx, userID)
 
 	// Assert

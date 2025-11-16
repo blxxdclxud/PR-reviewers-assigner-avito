@@ -47,7 +47,14 @@ func (p *PullRequestRepository) Update(ctx context.Context, tx *sql.Tx, pr *doma
 			SET status = $1, merged_at = $2
 			WHERE id = $3`
 
-	res, err := tx.ExecContext(ctx, query, pr.Status, pr.MergedAt, pr.ID)
+	var mergedAt interface{}
+	if pr.MergedAt != nil {
+		mergedAt = *pr.MergedAt
+	} else {
+		mergedAt = nil
+	}
+
+	res, err := tx.ExecContext(ctx, query, pr.Status, mergedAt, pr.ID)
 	if err != nil {
 		return err
 	}

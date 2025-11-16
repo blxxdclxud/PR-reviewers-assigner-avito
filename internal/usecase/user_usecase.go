@@ -11,16 +11,19 @@ import (
 type UserUseCase struct {
 	userRepo repository.UserRepository
 	prRepo   repository.PullRequestRepository
+	teamRepo repository.TeamRepository
 	db       *sql.DB
 }
 
 func NewUserUseCase(
 	userRepo repository.UserRepository,
 	prRepo repository.PullRequestRepository,
+	teamRepo repository.TeamRepository,
 	db *sql.DB) *UserUseCase {
 	return &UserUseCase{
 		userRepo: userRepo,
 		prRepo:   prRepo,
+		teamRepo: teamRepo,
 		db:       db,
 	}
 }
@@ -48,10 +51,17 @@ func (u *UserUseCase) SetUserIsActive(ctx context.Context, userID string, isActi
 		return nil, err
 	}
 
+	teamName, err := u.teamRepo.GetTeamNameById(ctx, user.TeamID)
+	if err != nil {
+		return nil, err
+	}
+
 	// Commit
 	if err = tx.Commit(); err != nil {
 		return nil, err
 	}
+
+	user.TeamName = teamName
 
 	return user, nil
 }

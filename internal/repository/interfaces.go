@@ -11,6 +11,7 @@ import (
 type TeamRepository interface {
 	Create(ctx context.Context, tx *sql.Tx, team *domain.Team) error
 	GetByName(ctx context.Context, teamName string) (*domain.Team, error)
+	GetTeamNameById(ctx context.Context, teamID int64) (string, error)
 }
 
 // UserRepository defines operations for managing users

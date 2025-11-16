@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"slices"
+	"time"
 
 	"github.com/blxxdclxud/PR-reviewers-assigner-avito/internal/domain"
 	"github.com/blxxdclxud/PR-reviewers-assigner-avito/internal/repository"
@@ -100,6 +101,8 @@ func (u *PRUseCase) MergePR(ctx context.Context, prID string) (*domain.PullReque
 	// But update in DB only if it is not merged yet
 	if pr.Status == domain.StatusOpen {
 		pr.Status = domain.StatusMerged
+		now := time.Now()
+		pr.MergedAt = &now
 
 		// Update PR in DB
 		err = u.prRepo.Update(ctx, tx, pr)
