@@ -15,7 +15,7 @@ import (
 // DBConfig contains PostgreSQL database connection settings
 type DBConfig struct {
 	Host     string `env:"POSTGRES_HOST,notEmpty"`
-	Port     string `env:"POSTGRES_PORT,notEmpty"`
+	Port     int    `env:"POSTGRES_PORT,notEmpty"`
 	User     string `env:"POSTGRES_USER,notEmpty"`
 	Password string `env:"POSTGRES_PASSWORD,notEmpty"`
 	DbName   string `env:"POSTGRES_DB,notEmpty"`
@@ -24,7 +24,7 @@ type DBConfig struct {
 // ServerConfig holds HTTP server settings
 type ServerConfig struct {
 	Host string `env:"SERVER_HOST,notEmpty"`
-	Port string `env:"SERVER_PORT,notEmpty"`
+	Port int    `env:"SERVER_PORT,notEmpty"`
 }
 
 // Config contains all application config
