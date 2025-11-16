@@ -6,16 +6,18 @@ import (
 	"errors"
 
 	"github.com/blxxdclxud/PR-reviewers-assigner-avito/internal/domain"
+	"go.uber.org/zap"
 )
 
 // TeamRepository handles database operations for teams
 type TeamRepository struct {
-	db *sql.DB
+	db     *sql.DB
+	logger *zap.Logger
 }
 
 // NewTeamRepository creates a new instance of TeamRepository
-func NewTeamRepository(db *sql.DB) *TeamRepository {
-	return &TeamRepository{db: db}
+func NewTeamRepository(db *sql.DB, logger *zap.Logger) *TeamRepository {
+	return &TeamRepository{db: db, logger: logger}
 }
 
 // Create inserts a new team into the database.
@@ -28,6 +30,9 @@ func (t *TeamRepository) Create(ctx context.Context, tx *sql.Tx, team *domain.Te
 		if isUniqueViolationError(err) {
 			return domain.ErrTeamExists
 		}
+		t.logger.Error("DB error on Team insert",
+			zap.Error(err),
+			zap.Int64("team_id", team.ID))
 		return err
 	}
 	return nil
@@ -48,6 +53,9 @@ func (t *TeamRepository) GetByName(ctx context.Context, teamName string) (*domai
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, domain.ErrNotFound
 		}
+		t.logger.Error("DB error on Team select",
+			zap.Error(err),
+			zap.Int64("team_id", team.ID))
 		return nil, err
 	}
 
@@ -62,7 +70,7 @@ func (t *TeamRepository) GetByName(ctx context.Context, teamName string) (*domai
 	return &team, nil
 }
 
-func (t *TeamRepository) GetTeamNameById(ctx context.Context, teamID int64) (string, error) {
+func (t *TeamRepository) GetTeamNameByID(ctx context.Context, teamID int64) (string, error) {
 	query := `
 			SELECT name
 			FROM teams 
@@ -75,6 +83,9 @@ func (t *TeamRepository) GetTeamNameById(ctx context.Context, teamID int64) (str
 		if errors.Is(err, sql.ErrNoRows) {
 			return "", domain.ErrNotFound
 		}
+		t.logger.Error("DB error on Team select",
+			zap.Error(err),
+			zap.Int64("team_id", teamID))
 		return "", err
 	}
 

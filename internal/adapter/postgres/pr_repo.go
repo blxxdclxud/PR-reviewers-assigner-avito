@@ -6,16 +6,18 @@ import (
 	"errors"
 
 	"github.com/blxxdclxud/PR-reviewers-assigner-avito/internal/domain"
+	"go.uber.org/zap"
 )
 
 // PullRequestRepository handles database operations for pull requests
 type PullRequestRepository struct {
-	db *sql.DB
+	db     *sql.DB
+	logger *zap.Logger
 }
 
 // NewPullRequestRepository creates a new instance of PullRequestRepository
-func NewPullRequestRepository(db *sql.DB) *PullRequestRepository {
-	return &PullRequestRepository{db: db}
+func NewPullRequestRepository(db *sql.DB, logger *zap.Logger) *PullRequestRepository {
+	return &PullRequestRepository{db: db, logger: logger}
 }
 
 // Create inserts a new pull request into the database and sets createdAt time value to PR object.
@@ -32,6 +34,9 @@ func (p *PullRequestRepository) Create(ctx context.Context, tx *sql.Tx, pr *doma
 		if isUniqueViolationError(err) {
 			return domain.ErrPRExists
 		}
+		p.logger.Error("DB error on PR insert",
+			zap.Error(err),
+			zap.String("pr_id", pr.ID))
 		return err
 	}
 
@@ -56,6 +61,9 @@ func (p *PullRequestRepository) Update(ctx context.Context, tx *sql.Tx, pr *doma
 
 	res, err := tx.ExecContext(ctx, query, pr.Status, mergedAt, pr.ID)
 	if err != nil {
+		p.logger.Error("DB error on PR update",
+			zap.Error(err),
+			zap.String("pr_id", pr.ID))
 		return err
 	}
 
@@ -87,6 +95,10 @@ func (p *PullRequestRepository) GetByID(ctx context.Context, prID string) (*doma
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, domain.ErrNotFound
 		}
+		p.logger.Error("DB error on PR select",
+			zap.Error(err),
+			zap.String("pr_id", pr.ID))
+		return nil, err
 	}
 
 	if mergedAt.Valid {
@@ -113,6 +125,9 @@ func (p *PullRequestRepository) getReviewerIDs(ctx context.Context, prID string)
 		if errors.Is(err, sql.ErrNoRows) {
 			return []string{}, nil
 		}
+		p.logger.Error("DB error on pr_reviewers select",
+			zap.Error(err),
+			zap.String("pr_id", prID))
 		return nil, err
 	}
 
@@ -153,6 +168,10 @@ func (p *PullRequestRepository) GetByIDForUpdate(ctx context.Context, tx *sql.Tx
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, domain.ErrNotFound
 		}
+		p.logger.Error("DB error on PR select",
+			zap.Error(err),
+			zap.String("pr_id", pr.ID))
+		return nil, err
 	}
 
 	if mergedAt.Valid {

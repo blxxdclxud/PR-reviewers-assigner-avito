@@ -51,7 +51,7 @@ func (u *UserUseCase) SetUserIsActive(ctx context.Context, userID string, isActi
 		return nil, err
 	}
 
-	teamName, err := u.teamRepo.GetTeamNameById(ctx, user.TeamID)
+	teamName, err := u.teamRepo.GetTeamNameByID(ctx, user.TeamID)
 	if err != nil {
 		return nil, err
 	}

@@ -11,7 +11,7 @@ import (
 )
 
 const (
-	MaxOpenConnections    = 25
+	MaxOpenConnections    = 10
 	MaxIdleConnections    = 5
 	MaxConnectionLifetime = 3 * time.Minute
 	MaxConnectionIdleTime = 10 * time.Minute
@@ -19,7 +19,7 @@ const (
 
 // NewDB creates and sets up database connection pool
 func NewDB(cfg config.DBConfig) (*sql.DB, error) {
-	dsn := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
+	dsn := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable",
 		cfg.Host, cfg.Port, cfg.User, cfg.Password, cfg.DbName)
 
 	// Create DB connection pool

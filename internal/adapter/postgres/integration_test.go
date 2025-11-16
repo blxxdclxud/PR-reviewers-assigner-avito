@@ -13,6 +13,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
+	"go.uber.org/zap"
 )
 
 // IntegrationTestSuite — set of integration tests
@@ -39,10 +40,12 @@ func (s *IntegrationTestSuite) SetupSuite() {
 	err = db.PingContext(ctx)
 	require.NoError(s.T(), err, "failed to connect to test database")
 
+	logger := zap.NewNop()
+
 	s.db = db
-	s.teamRepo = NewTeamRepository(db)
-	s.userRepo = NewUserRepository(db)
-	s.prRepo = NewPullRequestRepository(db)
+	s.teamRepo = NewTeamRepository(db, logger)
+	s.userRepo = NewUserRepository(db, logger)
+	s.prRepo = NewPullRequestRepository(db, logger)
 }
 
 func (s *IntegrationTestSuite) TearDownSuite() {

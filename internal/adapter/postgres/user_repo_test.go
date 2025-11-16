@@ -10,12 +10,13 @@ import (
 	"github.com/blxxdclxud/PR-reviewers-assigner-avito/internal/domain"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/zap"
 )
 
 func TestUserRepository_Create(t *testing.T) {
 	db, mock, _ := sqlmock.New()
 	defer db.Close()
-	repo := &UserRepository{db: db}
+	repo := &UserRepository{db: db, logger: zap.NewNop()}
 	user := &domain.User{ID: "user-1", Name: "Bob", IsActive: true, TeamID: int64(1)}
 
 	mock.ExpectBegin()
@@ -41,7 +42,7 @@ func TestUserRepository_Create(t *testing.T) {
 func TestUserRepository_Update(t *testing.T) {
 	db, mock, _ := sqlmock.New()
 	defer db.Close()
-	repo := &UserRepository{db: db}
+	repo := &UserRepository{db: db, logger: zap.NewNop()}
 	user := &domain.User{ID: "user-1", Name: "Bob", IsActive: false, TeamID: int64(1)}
 
 	mock.ExpectBegin()
@@ -67,7 +68,7 @@ func TestUserRepository_Update(t *testing.T) {
 func TestUserRepository_GetByID(t *testing.T) {
 	db, mock, _ := sqlmock.New()
 	defer db.Close()
-	repo := &UserRepository{db: db}
+	repo := &UserRepository{db: db, logger: zap.NewNop()}
 
 	userID := "user-0"
 	teamID := int64(1)
@@ -102,7 +103,7 @@ func TestUserRepository_GetByID(t *testing.T) {
 func TestUserRepository_GetActiveTeamMembersIDs(t *testing.T) {
 	db, mock, _ := sqlmock.New()
 	defer db.Close()
-	repo := &UserRepository{db: db}
+	repo := &UserRepository{db: db, logger: zap.NewNop()}
 	teamID := int64(1)
 	exclude := "user-3"
 

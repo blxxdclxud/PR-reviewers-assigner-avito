@@ -12,12 +12,13 @@ import (
 	"github.com/lib/pq"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/zap"
 )
 
 func TestTeamRepository_Create(t *testing.T) {
 	db, mock, _ := sqlmock.New()
 	defer db.Close()
-	repo := &TeamRepository{db: db}
+	repo := &TeamRepository{db: db, logger: zap.NewNop()}
 
 	team := &domain.Team{
 		ID:      0,
@@ -63,7 +64,7 @@ func TestTeamRepository_Create(t *testing.T) {
 func TestTeamRepository_GetByName(t *testing.T) {
 	db, mock, _ := sqlmock.New()
 	defer db.Close()
-	repo := &TeamRepository{db: db}
+	repo := &TeamRepository{db: db, logger: zap.NewNop()}
 
 	teamID := int64(42)
 	teamName := "team-1"

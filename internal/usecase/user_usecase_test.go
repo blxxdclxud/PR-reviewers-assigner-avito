@@ -38,6 +38,7 @@ func TestSetUserIsActive_Success(t *testing.T) {
 	mockUserRepo.On("Update", ctx, mock.Anything, mock.MatchedBy(func(u *domain.User) bool {
 		return u.ID == userID && u.IsActive == false
 	})).Return(nil)
+	mockTeamRepo.On("GetTeamNameByID", ctx, expectedUser.TeamID).Return("best_team", nil)
 
 	dbMock.ExpectCommit()
 

@@ -11,12 +11,13 @@ import (
 	"github.com/blxxdclxud/PR-reviewers-assigner-avito/internal/domain"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/zap"
 )
 
 func TestPullRequestRepository_Create(t *testing.T) {
 	db, mock, _ := sqlmock.New()
 	defer db.Close()
-	repo := &PullRequestRepository{db: db}
+	repo := &PullRequestRepository{db: db, logger: zap.NewNop()}
 
 	pr := &domain.PullRequest{ID: "test-pr-id", Name: "My-test-PR_wow", AuthorID: "ramadan", Status: "OPEN"}
 	now := time.Now()
@@ -49,7 +50,7 @@ func TestPullRequestRepository_Create(t *testing.T) {
 func TestPullRequestRepository_Update(t *testing.T) {
 	db, mock, _ := sqlmock.New()
 	defer db.Close()
-	repo := &PullRequestRepository{db: db}
+	repo := &PullRequestRepository{db: db, logger: zap.NewNop()}
 
 	mock.ExpectBegin()
 	tx, err := db.Begin()
@@ -92,7 +93,7 @@ func TestPullRequestRepository_Update(t *testing.T) {
 func TestPullRequestRepository_GetByID(t *testing.T) {
 	db, mock, _ := sqlmock.New()
 	defer db.Close()
-	repo := &PullRequestRepository{db: db}
+	repo := &PullRequestRepository{db: db, logger: zap.NewNop()}
 	prID := "pr-1"
 
 	// Case: row found, merged_at already not nil, reviewers returned
@@ -135,7 +136,7 @@ func TestPullRequestRepository_GetByID(t *testing.T) {
 func TestPullRequestRepository_getReviewerIDs(t *testing.T) {
 	db, mock, _ := sqlmock.New()
 	defer db.Close()
-	repo := &PullRequestRepository{db: db}
+	repo := &PullRequestRepository{db: db, logger: zap.NewNop()}
 	prID := "pr-test"
 
 	// reviewers correct
@@ -168,7 +169,7 @@ func TestPullRequestRepository_getReviewerIDs(t *testing.T) {
 func TestPRRepo_GetByIDForUpdate(t *testing.T) {
 	db, mock, _ := sqlmock.New()
 	defer db.Close()
-	repo := &PullRequestRepository{db: db}
+	repo := &PullRequestRepository{db: db, logger: zap.NewNop()}
 	prID := "pr-1"
 	now := time.Now()
 
@@ -207,7 +208,7 @@ func TestPRRepo_GetByIDForUpdate(t *testing.T) {
 func TestPullRequestRepository_getReviewerIDsTx(t *testing.T) {
 	db, mock, _ := sqlmock.New()
 	defer db.Close()
-	repo := &PullRequestRepository{db: db}
+	repo := &PullRequestRepository{db: db, logger: zap.NewNop()}
 	prID := "pr-test"
 
 	mock.ExpectBegin()
@@ -243,7 +244,7 @@ func TestPullRequestRepository_getReviewerIDsTx(t *testing.T) {
 func TestPRRepo_AddReviewer(t *testing.T) {
 	db, mock, _ := sqlmock.New()
 	defer db.Close()
-	repo := &PullRequestRepository{db: db}
+	repo := &PullRequestRepository{db: db, logger: zap.NewNop()}
 
 	mock.ExpectBegin()
 	tx, _ := db.Begin()
@@ -263,7 +264,7 @@ func TestPRRepo_AddReviewer(t *testing.T) {
 func TestPRRepo_RemoveReviewer(t *testing.T) {
 	db, mock, _ := sqlmock.New()
 	defer db.Close()
-	repo := &PullRequestRepository{db: db}
+	repo := &PullRequestRepository{db: db, logger: zap.NewNop()}
 
 	mock.ExpectBegin()
 	tx, _ := db.Begin()
@@ -287,7 +288,7 @@ func TestPRRepo_RemoveReviewer(t *testing.T) {
 func TestPRRepo_GetPRsByReviewer(t *testing.T) {
 	db, mock, _ := sqlmock.New()
 	defer db.Close()
-	repo := &PullRequestRepository{db: db}
+	repo := &PullRequestRepository{db: db, logger: zap.NewNop()}
 	userID := "user-777"
 	now := time.Now()
 

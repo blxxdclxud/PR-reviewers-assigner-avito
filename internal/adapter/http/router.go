@@ -9,7 +9,8 @@ import (
 func SetupRouter(
 	teamUC *usecase.TeamUseCase,
 	userUC *usecase.UserUseCase,
-	prUC *usecase.PRUseCase) *gin.Engine {
+	prUC *usecase.PRUseCase,
+	statsUC *usecase.StatsUseCase) *gin.Engine {
 
 	router := gin.Default()
 
@@ -17,6 +18,8 @@ func SetupRouter(
 	teamHandler := handler.NewTeamHandler(teamUC)
 	userHandler := handler.NewUserHandler(userUC)
 	prHandler := handler.NewPRHandler(prUC)
+
+	statsHandler := handler.NewStatsHandler(statsUC)
 
 	// Health check endpoint
 	router.GET("/healthz", func(c *gin.Context) {
@@ -47,6 +50,8 @@ func SetupRouter(
 		pr.POST("/merge", prHandler.Merge)
 		pr.POST("/reassign", prHandler.Reassign)
 	}
+
+	router.GET("/stats", statsHandler.GetStats)
 
 	return router
 }

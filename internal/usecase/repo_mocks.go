@@ -25,6 +25,14 @@ func (m *TeamRepoMock) GetByName(ctx context.Context, teamName string) (*domain.
 	return args.Get(0).(*domain.Team), args.Error(1)
 }
 
+func (m *TeamRepoMock) GetTeamNameByID(ctx context.Context, teamID int64) (string, error) {
+	args := m.Called(ctx, teamID)
+	if args.Get(0) == nil {
+		return "", args.Error(1)
+	}
+	return args.String(0), args.Error(1)
+}
+
 type UserRepoMock struct {
 	mock.Mock
 }

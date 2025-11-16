@@ -6,16 +6,18 @@ import (
 	"errors"
 
 	"github.com/blxxdclxud/PR-reviewers-assigner-avito/internal/domain"
+	"go.uber.org/zap"
 )
 
 // UserRepository handles database operations for users
 type UserRepository struct {
-	db *sql.DB
+	db     *sql.DB
+	logger *zap.Logger
 }
 
 // NewUserRepository creates a new instance of UserRepository
-func NewUserRepository(db *sql.DB) *UserRepository {
-	return &UserRepository{db: db}
+func NewUserRepository(db *sql.DB, logger *zap.Logger) *UserRepository {
+	return &UserRepository{db: db, logger: logger}
 }
 
 // Create inserts a new user into the database.
@@ -25,7 +27,14 @@ func (u *UserRepository) Create(ctx context.Context, tx *sql.Tx, user *domain.Us
 			VALUES ($1, $2, $3, $4)`
 	_, err := tx.ExecContext(ctx, query, user.ID, user.Name, user.IsActive, user.TeamID)
 
-	return err
+	if err != nil {
+		u.logger.Error("DB error on User insert",
+			zap.Error(err),
+			zap.String("team_id", user.ID))
+		return err
+	}
+
+	return nil
 }
 
 // Update modifies an existing user's information.
@@ -36,6 +45,9 @@ func (u *UserRepository) Update(ctx context.Context, tx *sql.Tx, user *domain.Us
 			WHERE id = $4`
 	res, err := tx.ExecContext(ctx, query, user.Name, user.IsActive, user.TeamID, user.ID)
 	if err != nil {
+		u.logger.Error("DB error on User update",
+			zap.Error(err),
+			zap.String("team_id", user.ID))
 		return err
 	}
 
@@ -63,6 +75,9 @@ func (u *UserRepository) GetByID(ctx context.Context, userID string) (*domain.Us
 	err := u.db.QueryRowContext(ctx, query, userID).Scan(&user.ID, &user.Name, &user.IsActive, &user.TeamID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
+			u.logger.Error("DB error on User select",
+				zap.Error(err),
+				zap.String("team_id", userID))
 			return nil, domain.ErrNotFound
 		}
 		return nil, err
