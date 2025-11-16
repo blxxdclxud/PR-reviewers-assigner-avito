@@ -55,7 +55,7 @@ func main() {
 	statsUC := usecase.NewStatsUseCase(statsRepo)
 
 	// Start server
-	addr := fmt.Sprintf("%s:%d", cfg.ServerConfig.Host, cfg.ServerConfig.Port)
+	addr := fmt.Sprintf(":%d", cfg.ServerConfig.Port)
 	logger.Info("starting HTTP server",
 		zap.String("addr", addr))
 

@@ -11,6 +11,14 @@
     cd PR-reviewers-assigner-avito
 ```
 
+### Настроить переменные окружения
+
+Создать .env из примера
+
+```shell
+    cp .env.example .env
+```
+
 ### Запустить сервис
 
 ```shell

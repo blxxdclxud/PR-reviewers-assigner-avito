@@ -1,7 +1,18 @@
 .PHONY: up down test test-integration test-e2e
 
+# Create .env from .env.example if not exists
+env:
+	@if [ ! -f .env ]; then \
+		echo "Creating .env from .env.example..."; \
+		cp .env.example .env; \
+		echo ".env created. Please update values if needed."; \
+	else \
+		echo ".env already exists"; \
+	fi
+
+
 # Start services
-up:
+up: env
 	docker compose up --build -d
 
 # Stop services
