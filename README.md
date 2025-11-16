@@ -21,6 +21,12 @@
 
 ### Запустить сервис
 
+Создать .env из примера, если нет
+
+```shell
+    cp .env.example .env
+```
+
 ```shell
     docker-compose up --build
 ```
