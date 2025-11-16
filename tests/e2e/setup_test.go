@@ -20,6 +20,7 @@ import (
 	_ "github.com/lib/pq"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
+	"go.uber.org/zap"
 )
 
 // E2ETestSuite contains end-to-end tests for the entire application
@@ -51,18 +52,24 @@ func (s *E2ETestSuite) SetupSuite() {
 
 	s.db = db
 
+	logger := zap.NewNop()
+
 	// Initialize repositories
-	s.teamRepo = postgres.NewTeamRepository(db)
-	s.userRepo = postgres.NewUserRepository(db)
-	s.prRepo = postgres.NewPullRequestRepository(db)
+	s.teamRepo = postgres.NewTeamRepository(db, logger)
+	s.userRepo = postgres.NewUserRepository(db, logger)
+	s.prRepo = postgres.NewPullRequestRepository(db, logger)
+
+	statsRepo := postgres.NewStatsRepository(db)
 
 	// Initialize use cases
 	teamUC := usecase.NewTeamUseCase(s.teamRepo, s.userRepo, db)
 	userUC := usecase.NewUserUseCase(s.userRepo, s.prRepo, s.teamRepo, db)
 	prUC := usecase.NewPRUseCase(s.userRepo, s.prRepo, db)
 
+	statsUC := usecase.NewStatsUseCase(statsRepo)
+
 	// Setup router and test server
-	router := httpAdapter.SetupRouter(teamUC, userUC, prUC)
+	router := httpAdapter.SetupRouter(teamUC, userUC, prUC, statsUC)
 	s.server = httptest.NewServer(router)
 	s.baseURL = s.server.URL
 }
