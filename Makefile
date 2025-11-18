@@ -25,8 +25,10 @@ test:
 
 # Run integration tests
 test-integration:
+	docker compose -f docker-compose.test.yml up --build -d
 	go test -v -tags=integration ./internal/...
 
 # Run E2E tests
 test-e2e:
+	docker compose -f docker-compose.test.yml up --build -d
 	go test -v -tags=e2e ./tests/e2e/...

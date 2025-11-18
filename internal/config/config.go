@@ -40,30 +40,35 @@ var (
 	once sync.Once
 )
 
-// LoadConfig loads configuration from .env file.
+// LoadConfig loads configuration from .env file or environment variables.
 // Uses sync.Once to ensure the config is loaded only once (singleton pattern).
-// Panics if the .env file is missing or contains invalid values.
+// If .env file exists, loads variables from it. Otherwise, uses OS environment variables.
+// Panics if required environment variables are missing or contain invalid values.
 func LoadConfig() *Config {
 	once.Do(func() {
 		absFP, _ := filepath.Abs(filePath)
 
-		// Check if .env file exists
-		_, err := os.ReadFile(filePath)
-		if err != nil {
-			log.Fatal(fmt.Sprintf("error finding `%s` file", absFP), zap.Error(err))
-		}
-
-		// Load environment variables from .env
-		err = godotenv.Load(filePath)
-		if err != nil {
-			log.Fatal(fmt.Sprintf("error loading env file `%s`", absFP), zap.Error(err))
+		// Try to load .env file, but don't fail if it doesn't exist
+		if _, err := os.Stat(filePath); err == nil {
+			// File exists, try to load it
+			err = godotenv.Load(filePath)
+			if err != nil {
+				log.Fatal(fmt.Sprintf("error loading env file `%s`", absFP), zap.Error(err))
+			}
+			log.Println(fmt.Sprintf("Loaded environment variables from `%s`", absFP))
+		} else if os.IsNotExist(err) {
+			// File doesn't exist, use environment variables from Docker/OS
+			log.Println("No .env file found, using environment variables from system")
+		} else {
+			// Some other error occurred
+			log.Fatal(fmt.Sprintf("error checking `%s` file", absFP), zap.Error(err))
 		}
 
 		// Parse environment variables into Config struct
 		cfg = &Config{}
-		err = env.ParseNested(cfg)
+		err := env.ParseNested(cfg)
 		if err != nil {
-			log.Fatal(fmt.Sprintf("error parsing config file `%s`", absFP), zap.Error(err))
+			log.Fatal("error parsing environment variables", zap.Error(err))
 		}
 	})
 

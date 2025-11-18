@@ -8,7 +8,7 @@ services:
     ports:
       - "5433:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - postgres_test_data:/var/lib/postgresql/data
     healthcheck:
       test: [ "CMD", "pg_isready", "-U", "test_user", "-d", "test_db" ]
       interval: 5s
@@ -29,4 +29,4 @@ services:
 
 
 volumes:
-  postgres_data:
+  postgres_test_data:
