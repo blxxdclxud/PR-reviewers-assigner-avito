@@ -420,7 +420,7 @@ func TestPRUseCase_ReassignReviewer_Success(t *testing.T) {
 
 	dbMock.ExpectBegin()
 
-	mockPRRepo.On("GetByID", ctx, prID).Return(pr, nil)
+	mockPRRepo.On("GetByIDForUpdate", ctx, mock.Anything, prID).Return(pr, nil)
 	mockUserRepo.On("GetByID", ctx, "u1").Return(author, nil)
 	mockUserRepo.On("GetActiveTeamMembersIDs", ctx, int64(1), "u1").Return([]string{"u2", "u3", "u4"}, nil)
 
@@ -449,7 +449,7 @@ func TestPRUseCase_ReassignReviewer_NotAssigned(t *testing.T) {
 	mockUserRepo := new(UserRepoMock)
 	mockPRRepo := new(PullRequestRepoMock)
 
-	db, _, err := sqlmock.New()
+	db, dbMock, err := sqlmock.New()
 	require.NoError(t, err)
 	defer db.Close()
 
@@ -463,7 +463,9 @@ func TestPRUseCase_ReassignReviewer_NotAssigned(t *testing.T) {
 		ReviewersIDs: []string{"u2", "u3"},
 	}
 
-	mockPRRepo.On("GetByID", ctx, prID).Return(pr, nil)
+	dbMock.ExpectBegin()
+	mockPRRepo.On("GetByIDForUpdate", ctx, mock.Anything, prID).Return(pr, nil)
+	dbMock.ExpectRollback()
 
 	// Execute
 	uc := NewPRUseCase(mockUserRepo, mockPRRepo, db)
@@ -474,6 +476,7 @@ func TestPRUseCase_ReassignReviewer_NotAssigned(t *testing.T) {
 	assert.Empty(t, newReviewerID)
 	assert.Nil(t, resultPR)
 
+	require.NoError(t, dbMock.ExpectationsWereMet())
 	mockPRRepo.AssertExpectations(t)
 }
 
@@ -481,7 +484,7 @@ func TestPRUseCase_ReassignReviewer_PRMerged(t *testing.T) {
 	mockUserRepo := new(UserRepoMock)
 	mockPRRepo := new(PullRequestRepoMock)
 
-	db, _, err := sqlmock.New()
+	db, dbMock, err := sqlmock.New()
 	require.NoError(t, err)
 	defer db.Close()
 
@@ -495,7 +498,9 @@ func TestPRUseCase_ReassignReviewer_PRMerged(t *testing.T) {
 		ReviewersIDs: []string{"u2", "u3"},
 	}
 
-	mockPRRepo.On("GetByID", ctx, prID).Return(pr, nil)
+	dbMock.ExpectBegin()
+	mockPRRepo.On("GetByIDForUpdate", ctx, mock.Anything, prID).Return(pr, nil)
+	dbMock.ExpectRollback()
 
 	// Execute
 	uc := NewPRUseCase(mockUserRepo, mockPRRepo, db)
@@ -506,6 +511,7 @@ func TestPRUseCase_ReassignReviewer_PRMerged(t *testing.T) {
 	assert.Empty(t, newReviewerID)
 	assert.Nil(t, resultPR)
 
+	require.NoError(t, dbMock.ExpectationsWereMet())
 	mockPRRepo.AssertExpectations(t)
 }
 
@@ -513,7 +519,7 @@ func TestPRUseCase_ReassignReviewer_NoCandidate(t *testing.T) {
 	mockUserRepo := new(UserRepoMock)
 	mockPRRepo := new(PullRequestRepoMock)
 
-	db, _, err := sqlmock.New()
+	db, dbMock, err := sqlmock.New()
 	require.NoError(t, err)
 	defer db.Close()
 
@@ -532,9 +538,11 @@ func TestPRUseCase_ReassignReviewer_NoCandidate(t *testing.T) {
 	// Team contains an author and current reviewers only - no candidates
 	candidates := []string{"u2", "u3"} // only current reviewers
 
-	mockPRRepo.On("GetByID", ctx, prID).Return(pr, nil)
+	dbMock.ExpectBegin()
+	mockPRRepo.On("GetByIDForUpdate", ctx, mock.Anything, prID).Return(pr, nil)
 	mockUserRepo.On("GetByID", ctx, "u1").Return(author, nil)
 	mockUserRepo.On("GetActiveTeamMembersIDs", ctx, int64(1), "u1").Return(candidates, nil)
+	dbMock.ExpectRollback()
 
 	// Execute
 	uc := NewPRUseCase(mockUserRepo, mockPRRepo, db)
@@ -545,6 +553,7 @@ func TestPRUseCase_ReassignReviewer_NoCandidate(t *testing.T) {
 	assert.Empty(t, newReviewerID)
 	assert.Nil(t, resultPR)
 
+	require.NoError(t, dbMock.ExpectationsWereMet())
 	mockUserRepo.AssertExpectations(t)
 	mockPRRepo.AssertExpectations(t)
 }
@@ -553,7 +562,7 @@ func TestPRUseCase_ReassignReviewer_PRNotFound(t *testing.T) {
 	mockUserRepo := new(UserRepoMock)
 	mockPRRepo := new(PullRequestRepoMock)
 
-	db, _, err := sqlmock.New()
+	db, dbMock, err := sqlmock.New()
 	require.NoError(t, err)
 	defer db.Close()
 
@@ -561,7 +570,9 @@ func TestPRUseCase_ReassignReviewer_PRNotFound(t *testing.T) {
 	prID := "nonexistent"
 	oldReviewerID := "u2"
 
-	mockPRRepo.On("GetByID", ctx, prID).Return(nil, domain.ErrNotFound)
+	dbMock.ExpectBegin()
+	mockPRRepo.On("GetByIDForUpdate", ctx, mock.Anything, prID).Return(nil, domain.ErrNotFound)
+	dbMock.ExpectRollback()
 
 	// Execute
 	uc := NewPRUseCase(mockUserRepo, mockPRRepo, db)
@@ -572,6 +583,7 @@ func TestPRUseCase_ReassignReviewer_PRNotFound(t *testing.T) {
 	assert.Empty(t, newReviewerID)
 	assert.Nil(t, resultPR)
 
+	require.NoError(t, dbMock.ExpectationsWereMet())
 	mockPRRepo.AssertExpectations(t)
 }
 
@@ -599,7 +611,7 @@ func TestPRUseCase_ReassignReviewer_RemoveReviewerError(t *testing.T) {
 
 	dbMock.ExpectBegin()
 
-	mockPRRepo.On("GetByID", ctx, prID).Return(pr, nil)
+	mockPRRepo.On("GetByIDForUpdate", ctx, mock.Anything, prID).Return(pr, nil)
 	mockUserRepo.On("GetByID", ctx, "u1").Return(author, nil)
 	mockUserRepo.On("GetActiveTeamMembersIDs", ctx, int64(1), "u1").Return(candidates, nil)
 	mockPRRepo.On("RemoveReviewer", ctx, mock.Anything, prID, oldReviewerID).Return(errors.New("db error"))

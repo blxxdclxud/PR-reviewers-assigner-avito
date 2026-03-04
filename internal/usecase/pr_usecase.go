@@ -129,8 +129,18 @@ func (u *PRUseCase) MergePR(ctx context.Context, prID string) (*domain.PullReque
 //     is not assigned to the PR, domain.ErrPRMerged if PR is already merged,
 //     domain.ErrNoCandidate if no suitable replacement found in the team, or any database error
 func (u *PRUseCase) ReassignReviewer(ctx context.Context, prID, oldReviewerID string) (*domain.PullRequest, string, error) {
-	// Get PR
-	pr, err := u.prRepo.GetByID(ctx, prID)
+	// Start transaction first to lock the PR row for the duration of the check-then-modify sequence.
+	// Without this, two concurrent ReassignReviewer calls on the same PR could both pass the
+	// status/assignment checks and then both modify the reviewer list, corrupting state.
+	tx, err := u.db.Begin()
+	if err != nil {
+		return nil, "", err
+	}
+	defer tx.Rollback() //nolint:errcheck
+
+	// Get PR with a row-level lock (SELECT ... FOR UPDATE).
+	// This serializes concurrent reassign operations on the same PR.
+	pr, err := u.prRepo.GetByIDForUpdate(ctx, tx, prID)
 	if err != nil {
 		return nil, "", err // err can be domain.ErrNotFound
 	}
@@ -147,26 +157,20 @@ func (u *PRUseCase) ReassignReviewer(ctx context.Context, prID, oldReviewerID st
 		return nil, "", domain.ErrPRMerged
 	}
 
-	// - Cannot reassign reviewer if there are no other candidates
-	// Get candidates, excluding all current reviewers
+	// Get candidates, excluding all current reviewers.
+	// Note: these reads happen outside the transaction (userRepo has no tx variants),
+	// but the PR row lock above ensures the PR state is consistent.
 	reviewers, err := u.getReviewersToAssign(ctx, pr.AuthorID, pr.ReviewersIDs...)
 	if err != nil { // err can be domain.ErrNotFound if author or his team do not exist
 		return nil, "", err
 	}
 
-	// Assert that there are any candidate
 	if len(reviewers) == 0 {
 		return nil, "", domain.ErrNoCandidate
 	}
 
 	// select first reviewer, since slice is already shuffled
 	newReviewerID := reviewers[0]
-
-	tx, err := u.db.Begin()
-	if err != nil {
-		return nil, "", err
-	}
-	defer tx.Rollback() //nolint:errcheck
 
 	// Remove old reviewer
 	err = u.prRepo.RemoveReviewer(ctx, tx, prID, oldReviewerID)

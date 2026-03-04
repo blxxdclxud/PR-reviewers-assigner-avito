@@ -43,9 +43,6 @@ func (u *TeamUseCase) CreateTeam(ctx context.Context, team domain.Team) (*domain
 	// Create team itself, created team ID is assigned to team.ID inside
 	err = u.teamRepo.Create(ctx, tx, &team)
 	if err != nil {
-		if errors.Is(err, domain.ErrTeamExists) {
-			return nil, err
-		}
 		return nil, err
 	}
 
