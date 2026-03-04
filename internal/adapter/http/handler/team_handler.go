@@ -1,20 +1,25 @@
 package handler
 
 import (
+	"context"
 	"errors"
 	"net/http"
 
 	"github.com/blxxdclxud/PR-reviewers-assigner-avito/internal/adapter/http/model"
 	"github.com/blxxdclxud/PR-reviewers-assigner-avito/internal/domain"
-	"github.com/blxxdclxud/PR-reviewers-assigner-avito/internal/usecase"
 	"github.com/gin-gonic/gin"
 )
 
-type TeamHandler struct {
-	teamUC *usecase.TeamUseCase
+type teamUseCase interface {
+	CreateTeam(ctx context.Context, team domain.Team) (*domain.Team, error)
+	GetTeam(ctx context.Context, teamName string) (*domain.Team, error)
 }
 
-func NewTeamHandler(teamUC *usecase.TeamUseCase) *TeamHandler {
+type TeamHandler struct {
+	teamUC teamUseCase
+}
+
+func NewTeamHandler(teamUC teamUseCase) *TeamHandler {
 	return &TeamHandler{teamUC: teamUC}
 }
 
@@ -33,18 +38,18 @@ func (h *TeamHandler) Add(c *gin.Context) {
 	// Parse json body
 	err := c.ShouldBindJSON(&req)
 	if err != nil {
-		c.JSON(WriteErrorResponse(model.ErrCodeInvalidInput))
+		c.JSON(model.WriteErrorResponse(model.ErrCodeInvalidInput))
 		return
 	}
 
 	team, err := h.teamUC.CreateTeam(c.Request.Context(), req.ToDomain())
 	if err != nil {
 		if errors.Is(err, domain.ErrTeamExists) {
-			c.JSON(WriteErrorResponse(model.ErrCodeTeamExists))
+			c.JSON(model.WriteErrorResponse(model.ErrCodeTeamExists))
 			return
 		}
 
-		c.JSON(WriteErrorResponse(model.ErrCodeInternal))
+		c.JSON(model.WriteErrorResponse(model.ErrCodeInternal))
 		return
 	}
 
@@ -63,17 +68,19 @@ func (h *TeamHandler) Add(c *gin.Context) {
 //	500 Internal Server Error (INTERNAL_ERROR)
 func (h *TeamHandler) Get(c *gin.Context) {
 	teamName := c.Query("team_name")
+	if teamName == "" {
+		c.JSON(model.WriteErrorResponse(model.ErrCodeInvalidInput))
+		return
+	}
 
 	team, err := h.teamUC.GetTeam(c.Request.Context(), teamName)
 	if err != nil {
-		// Check error type
 		if errors.Is(err, domain.ErrNotFound) {
-			c.JSON(WriteErrorResponse(model.ErrCodeNotFound))
+			c.JSON(model.WriteErrorResponse(model.ErrCodeNotFound))
 			return
 		}
 
-		// Any other error - internal server error
-		c.JSON(WriteErrorResponse(model.ErrCodeInternal))
+		c.JSON(model.WriteErrorResponse(model.ErrCodeInternal))
 		return
 	}
 

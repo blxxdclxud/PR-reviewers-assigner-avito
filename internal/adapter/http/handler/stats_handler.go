@@ -1,18 +1,23 @@
 package handler
 
 import (
+	"context"
 	"net/http"
 
 	"github.com/blxxdclxud/PR-reviewers-assigner-avito/internal/adapter/http/model"
-	"github.com/blxxdclxud/PR-reviewers-assigner-avito/internal/usecase"
+	"github.com/blxxdclxud/PR-reviewers-assigner-avito/internal/domain"
 	"github.com/gin-gonic/gin"
 )
 
-type StatsHandler struct {
-	statsUC *usecase.StatsUseCase
+type statsUseCase interface {
+	GetStats(ctx context.Context) (*domain.Stats, error)
 }
 
-func NewStatsHandler(statsUC *usecase.StatsUseCase) *StatsHandler {
+type StatsHandler struct {
+	statsUC statsUseCase
+}
+
+func NewStatsHandler(statsUC statsUseCase) *StatsHandler {
 	return &StatsHandler{statsUC: statsUC}
 }
 

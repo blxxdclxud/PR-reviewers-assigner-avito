@@ -1,20 +1,26 @@
 package handler
 
 import (
+	"context"
 	"errors"
 	"net/http"
 
 	"github.com/blxxdclxud/PR-reviewers-assigner-avito/internal/adapter/http/model"
 	"github.com/blxxdclxud/PR-reviewers-assigner-avito/internal/domain"
-	"github.com/blxxdclxud/PR-reviewers-assigner-avito/internal/usecase"
 	"github.com/gin-gonic/gin"
 )
 
-type PRHandler struct {
-	prUC *usecase.PRUseCase
+type prUseCase interface {
+	CreatePRAndSetReviewers(ctx context.Context, pr domain.PullRequest) (*domain.PullRequest, error)
+	MergePR(ctx context.Context, prID string) (*domain.PullRequest, error)
+	ReassignReviewer(ctx context.Context, prID, oldReviewerID string) (*domain.PullRequest, string, error)
 }
 
-func NewPRHandler(prUC *usecase.PRUseCase) *PRHandler {
+type PRHandler struct {
+	prUC prUseCase
+}
+
+func NewPRHandler(prUC prUseCase) *PRHandler {
 	return &PRHandler{prUC: prUC}
 }
 

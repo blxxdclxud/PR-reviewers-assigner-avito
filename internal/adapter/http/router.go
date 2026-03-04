@@ -12,7 +12,8 @@ func SetupRouter(
 	prUC *usecase.PRUseCase,
 	statsUC *usecase.StatsUseCase) *gin.Engine {
 
-	router := gin.Default()
+	router := gin.New()
+	router.Use(gin.Recovery())
 
 	// Handlers
 	teamHandler := handler.NewTeamHandler(teamUC)
@@ -25,9 +26,6 @@ func SetupRouter(
 	router.GET("/healthz", func(c *gin.Context) {
 		c.JSON(200, gin.H{"status": "ok"})
 	})
-
-	// Add middlewares
-	//router.Use()
 
 	// User endpoints
 	user := router.Group("/users")
