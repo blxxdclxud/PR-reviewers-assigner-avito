@@ -151,11 +151,11 @@ func TestPullRequestRepository_getReviewerIDs(t *testing.T) {
 	// no reviewers => just empty list
 	mock.ExpectQuery(`SELECT user_id FROM pr_reviewers WHERE pr_id =`).
 		WithArgs("empty").
-		WillReturnError(sql.ErrNoRows)
+		WillReturnRows(sqlmock.NewRows([]string{"user_id"}))
 
 	ids, err = repo.getReviewerIDs(context.Background(), "empty")
 	require.NoError(t, err)
-	assert.Equal(t, []string{}, ids)
+	assert.Empty(t, ids)
 
 	// Specific error during rows.Scan
 	mock.ExpectQuery(`SELECT user_id FROM pr_reviewers WHERE pr_id =`).
@@ -226,11 +226,11 @@ func TestPullRequestRepository_getReviewerIDsTx(t *testing.T) {
 	// no reviewers => just empty list
 	mock.ExpectQuery(`SELECT user_id FROM pr_reviewers WHERE pr_id =`).
 		WithArgs("empty").
-		WillReturnError(sql.ErrNoRows)
+		WillReturnRows(sqlmock.NewRows([]string{"user_id"}))
 
 	ids, err = repo.getReviewerIDsTx(context.Background(), tx, "empty")
 	require.NoError(t, err)
-	assert.Equal(t, []string{}, ids)
+	assert.Empty(t, ids)
 
 	// Specific error during rows.Scan
 	mock.ExpectQuery(`SELECT user_id FROM pr_reviewers WHERE pr_id =`).
@@ -304,12 +304,12 @@ func TestPRRepo_GetPRsByReviewer(t *testing.T) {
 	assert.Equal(t, "pr-1", prs[0].ID)
 	assert.Equal(t, "pr-2", prs[1].ID)
 
-	// No such PR, sql.ErrNoRows error
+	// No such PR — QueryContext returns empty rows, not sql.ErrNoRows
 	mock.ExpectQuery(`SELECT id, name, author_id, status, created_at, merged_at FROM pull_requests`).WithArgs("nil").
-		WillReturnError(sql.ErrNoRows)
+		WillReturnRows(sqlmock.NewRows([]string{"id", "name", "author_id", "status", "created_at", "merged_at"}))
 	prs, err = repo.GetPRsByReviewer(context.Background(), "nil")
-	assert.ErrorIs(t, err, domain.ErrNotFound)
-	assert.Nil(t, prs)
+	assert.NoError(t, err)
+	assert.Empty(t, prs)
 
 	// Query error
 	mock.ExpectQuery(`SELECT id, name, author_id, status, created_at, merged_at FROM pull_requests`).WithArgs(userID).
