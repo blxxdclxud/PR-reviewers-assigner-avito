@@ -34,6 +34,6 @@ type PullRequestRepository interface {
 }
 
 type StatsRepository interface {
-	GetGeneralStats(ctx context.Context) (map[string]interface{}, error)
+	GetGeneralStats(ctx context.Context) (*domain.Stats, error)
 	GetReviewers(ctx context.Context) ([]domain.UserReviewStats, error)
 }

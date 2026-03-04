@@ -30,7 +30,7 @@ func (u *UserRepository) Create(ctx context.Context, tx *sql.Tx, user *domain.Us
 	if err != nil {
 		u.logger.Error("DB error on User insert",
 			zap.Error(err),
-			zap.String("team_id", user.ID))
+			zap.String("user_id", user.ID))
 		return err
 	}
 
@@ -47,20 +47,19 @@ func (u *UserRepository) Update(ctx context.Context, tx *sql.Tx, user *domain.Us
 	if err != nil {
 		u.logger.Error("DB error on User update",
 			zap.Error(err),
-			zap.String("team_id", user.ID))
+			zap.String("user_id", user.ID))
 		return err
 	}
 
-	// If no such user - return ErrNotFound
-	if rows, err := res.RowsAffected(); err != nil {
+	affected, err := res.RowsAffected()
+	if err != nil {
 		return err
-	} else {
-		if rows == 0 {
-			return domain.ErrNotFound
-		}
+	}
+	if affected == 0 {
+		return domain.ErrNotFound
 	}
 
-	return err
+	return nil
 }
 
 // GetByID retrieves a user by their ID.
@@ -75,11 +74,11 @@ func (u *UserRepository) GetByID(ctx context.Context, userID string) (*domain.Us
 	err := u.db.QueryRowContext(ctx, query, userID).Scan(&user.ID, &user.Name, &user.IsActive, &user.TeamID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			u.logger.Error("DB error on User select",
-				zap.Error(err),
-				zap.String("team_id", userID))
 			return nil, domain.ErrNotFound
 		}
+		u.logger.Error("DB error on User select",
+			zap.Error(err),
+			zap.String("user_id", userID))
 		return nil, err
 	}
 
@@ -99,11 +98,9 @@ func (u *UserRepository) GetActiveTeamMembersIDs(ctx context.Context, teamID int
 
 	rows, err := u.db.QueryContext(ctx, query, teamID, excludeUserID)
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return []string{}, nil
-		}
 		return nil, err
 	}
+	defer rows.Close() //nolint:errcheck
 
 	var memberIDs []string
 	for rows.Next() {

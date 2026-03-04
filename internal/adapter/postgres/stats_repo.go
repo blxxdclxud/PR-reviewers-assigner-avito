@@ -15,48 +15,33 @@ func NewStatsRepository(db *sql.DB) *StatsRepository {
 	return &StatsRepository{db: db}
 }
 
-func (r *StatsRepository) GetGeneralStats(ctx context.Context) (map[string]interface{}, error) {
-	stats := make(map[string]interface{})
+func (r *StatsRepository) GetGeneralStats(ctx context.Context) (*domain.Stats, error) {
+	stats := &domain.Stats{}
 
-	// Total teams
-	var totalTeams int
-	err := r.db.QueryRowContext(ctx, "SELECT COUNT(*) FROM teams").Scan(&totalTeams)
+	err := r.db.QueryRowContext(ctx, "SELECT COUNT(*) FROM teams").Scan(&stats.TotalTeams)
 	if err != nil {
 		return nil, err
 	}
-	stats["total_teams"] = totalTeams
 
-	// Total users
-	var totalUsers int
-	err = r.db.QueryRowContext(ctx, "SELECT COUNT(*) FROM users").Scan(&totalUsers)
+	err = r.db.QueryRowContext(ctx, "SELECT COUNT(*) FROM users").Scan(&stats.TotalUsers)
 	if err != nil {
 		return nil, err
 	}
-	stats["total_users"] = totalUsers
 
-	// Total PRs
-	var totalPRs int
-	err = r.db.QueryRowContext(ctx, "SELECT COUNT(*) FROM pull_requests").Scan(&totalPRs)
+	err = r.db.QueryRowContext(ctx, "SELECT COUNT(*) FROM pull_requests").Scan(&stats.TotalPRs)
 	if err != nil {
 		return nil, err
 	}
-	stats["total_prs"] = totalPRs
 
-	// Open PRs
-	var openPRs int
-	err = r.db.QueryRowContext(ctx, "SELECT COUNT(*) FROM pull_requests WHERE status = 'OPEN'").Scan(&openPRs)
+	err = r.db.QueryRowContext(ctx, "SELECT COUNT(*) FROM pull_requests WHERE status = 'OPEN'").Scan(&stats.OpenPRs)
 	if err != nil {
 		return nil, err
 	}
-	stats["open_prs"] = openPRs
 
-	// Merged PRs
-	var mergedPRs int
-	err = r.db.QueryRowContext(ctx, "SELECT COUNT(*) FROM pull_requests WHERE status = 'MERGED'").Scan(&mergedPRs)
+	err = r.db.QueryRowContext(ctx, "SELECT COUNT(*) FROM pull_requests WHERE status = 'MERGED'").Scan(&stats.MergedPRs)
 	if err != nil {
 		return nil, err
 	}
-	stats["merged_prs"] = mergedPRs
 
 	return stats, nil
 }

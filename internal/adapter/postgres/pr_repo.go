@@ -122,14 +122,12 @@ func (p *PullRequestRepository) getReviewerIDs(ctx context.Context, prID string)
 
 	rows, err := p.db.QueryContext(ctx, query, prID)
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return []string{}, nil
-		}
 		p.logger.Error("DB error on pr_reviewers select",
 			zap.Error(err),
 			zap.String("pr_id", prID))
 		return nil, err
 	}
+	defer rows.Close() //nolint:errcheck
 
 	var reviewerIDs []string
 	for rows.Next() {
@@ -195,11 +193,9 @@ func (p *PullRequestRepository) getReviewerIDsTx(ctx context.Context, tx *sql.Tx
 
 	rows, err := tx.QueryContext(ctx, query, prID)
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return []string{}, nil
-		}
 		return nil, err
 	}
+	defer rows.Close() //nolint:errcheck
 
 	var reviewerIDs []string
 	for rows.Next() {
@@ -245,11 +241,14 @@ func (p *PullRequestRepository) RemoveReviewer(ctx context.Context, tx *sql.Tx, 
 		return err
 	}
 
-	rows, _ := res.RowsAffected()
-	if rows == 0 {
+	affected, err := res.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if affected == 0 {
 		return domain.ErrNotAssigned
 	}
-	return err
+	return nil
 }
 
 // GetPRsByReviewer retrieves all pull requests assigned to a specific reviewer.
@@ -264,11 +263,9 @@ func (p *PullRequestRepository) GetPRsByReviewer(ctx context.Context, userID str
 
 	rows, err := p.db.QueryContext(ctx, query, userID)
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return nil, domain.ErrNotFound
-		}
 		return nil, err
 	}
+	defer rows.Close() //nolint:errcheck
 
 	var prs []*domain.PullRequest
 	for rows.Next() {
