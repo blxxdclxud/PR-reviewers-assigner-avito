@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# Seed script for load testing.
-# Creates 1 team with 15 active members and 50 open PRs (each gets 2 reviewers).
-# Run once before load tests: bash tests/load/seed.sh [BASE_URL]
+# Скрипт для нагрузочного тестирования.
+# Создает 1 команду с 15 активными участниками и 50 открытыми PR (каждый получает 2 ревьюеров).
+# Запустить один раз перед нагрузочным тестированием: bash tests/load/seed.sh [BASE_URL]
 
 set -e
 
