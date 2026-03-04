@@ -1,7 +1,6 @@
 package config
 
 import (
-	"fmt"
 	"log"
 	"os"
 	"path/filepath"
@@ -9,7 +8,6 @@ import (
 
 	"github.com/gabrielsoaressantos/env/v8"
 	"github.com/joho/godotenv"
-	"go.uber.org/zap"
 )
 
 // DBConfig contains PostgreSQL database connection settings
@@ -46,29 +44,31 @@ var (
 // Panics if required environment variables are missing or contain invalid values.
 func LoadConfig() *Config {
 	once.Do(func() {
-		absFP, _ := filepath.Abs(filePath)
+		absFP, err := filepath.Abs(filePath)
+		if err != nil {
+			log.Fatalf("failed to resolve path %q: %v", filePath, err)
+		}
 
 		// Try to load .env file, but don't fail if it doesn't exist
 		if _, err := os.Stat(filePath); err == nil {
 			// File exists, try to load it
 			err = godotenv.Load(filePath)
 			if err != nil {
-				log.Fatal(fmt.Sprintf("error loading env file `%s`", absFP), zap.Error(err))
+				log.Fatalf("error loading env file %q: %v", absFP, err)
 			}
-			log.Println(fmt.Sprintf("Loaded environment variables from `%s`", absFP))
+			log.Printf("Loaded environment variables from %q", absFP)
 		} else if os.IsNotExist(err) {
 			// File doesn't exist, use environment variables from Docker/OS
 			log.Println("No .env file found, using environment variables from system")
 		} else {
 			// Some other error occurred
-			log.Fatal(fmt.Sprintf("error checking `%s` file", absFP), zap.Error(err))
+			log.Fatalf("error checking file %q: %v", absFP, err)
 		}
 
 		// Parse environment variables into Config struct
 		cfg = &Config{}
-		err := env.ParseNested(cfg)
-		if err != nil {
-			log.Fatal("error parsing environment variables", zap.Error(err))
+		if err = env.ParseNested(cfg); err != nil {
+			log.Fatalf("error parsing environment variables: %v", err)
 		}
 	})
 
