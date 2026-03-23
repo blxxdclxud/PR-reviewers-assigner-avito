@@ -6,10 +6,10 @@ export const options = {
   duration: '30s',
 };
 
-// Each VU owns its own PR to avoid deadlocks from concurrent reassigns on same row.
+// All VUs compete for the same 5 PRs to stress-test SELECT FOR UPDATE under real lock contention.
 // Requires seed.sh to have run first (creates load-pr-1 .. load-pr-50).
 const BASE_URL = __ENV.BASE_URL || 'http://localhost:8080';
-const POOL_SIZE = 50;
+const POOL_SIZE = 5;
 
 export default function () {
   const prID = `load-pr-${(__VU % POOL_SIZE) + 1}`;
